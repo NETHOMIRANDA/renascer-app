@@ -220,15 +220,43 @@ def buscar_materiais_inteligente(termo, catalogo):
 # --- BASE DE DADOS DA SESSÃO ---
 if 'catalogo' not in st.session_state:
     st.session_state.catalogo = [
-        {"id": 1, "categoria": "Mobiliário & Mesas", "nome": "Jogo de Mesa com 4 Cadeiras de Plástico (Branca)", "preco": 14.00, "estoque": 50, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=400&q=80", "tipo_mesa": "quadrada"},
-        {"id": 2, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 6 Lugares (Tampão de Madeira)", "preco": 18.00, "estoque": 20, "foto": "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=400&q=80", "tipo_mesa": "redonda"},
-        {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Aparador Rústico de Madeira (2,50m)", "preco": 25.00, "estoque": 5, "foto": "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=400&q=80", "tipo_mesa": "outro"},
-        {"id": 5, "categoria": "Toalhas & Enxoval", "nome": "Toalha Quadrada para Mesa (1,50m x 1,50m)", "preco": 6.00, "estoque": 100, "foto": "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=400&q=80", "tipo_toalha": "quadrada"},
-        {"id": 6, "categoria": "Toalhas & Enxoval", "nome": "Toalha Redonda para Mesa 6 e 7 Lugares", "preco": 12.00, "estoque": 80, "foto": "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=400&q=80", "tipo_toalha": "redonda"},
-        {"id": 8, "categoria": "Louças & Copos", "nome": "Prato de Jantar Raso Branco Liso", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=400&q=80"},
-        {"id": 9, "categoria": "Louças & Copos", "nome": "Taça para Água / Vinho Transparente", "preco": 1.00, "estoque": 200, "foto": "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=400&q=80"},
-        {"id": 12, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Redondo Banho-Maria", "preco": 25.00, "estoque": 10, "foto": "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=400&q=80"},
-        {"id": 20, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal 2 Tampas (400 Litros)", "preco": 200.00, "estoque": 3, "foto": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=400&q=80"},
+        # Mobiliário & Mesas
+        {"id": 1, "categoria": "Mobiliário & Mesas", "nome": "Jogo de Mesa com 4 Cadeiras de Plástico (Branca)", "preco": 14.00, "estoque": 50, "foto": "", "tipo_mesa": "quadrada"},
+        {"id": 2, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 6 Lugares (Tampão de Madeira)", "preco": 18.00, "estoque": 20, "foto": "", "tipo_mesa": "redonda"},
+        {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Aparador Rústico de Madeira (2,50m)", "preco": 25.00, "estoque": 5, "foto": "", "tipo_mesa": "outro"},
+        {"id": 4, "categoria": "Mobiliário & Mesas", "nome": "Cadeira de Plástico Branca Avulsa", "preco": 2.50, "estoque": 200, "foto": ""},
+        {"id": 5, "categoria": "Mobiliário & Mesas", "nome": "Mesa Bistrô Alta de Madeira", "preco": 20.00, "estoque": 15, "foto": ""},
+        {"id": 6, "categoria": "Mobiliário & Mesas", "nome": "Banqueta Alta para Bistrô", "preco": 5.00, "estoque": 40, "foto": ""},
+        
+        # Toalhas & Enxoval
+        {"id": 7, "categoria": "Toalhas & Enxoval", "nome": "Toalha Quadrada para Mesa (1,50m x 1,50m)", "preco": 6.00, "estoque": 100, "foto": "", "tipo_toalha": "quadrada"},
+        {"id": 8, "categoria": "Toalhas & Enxoval", "nome": "Toalha Redonda para Mesa 6 e 7 Lugares", "preco": 12.00, "estoque": 80, "foto": "", "tipo_toalha": "redonda"},
+        {"id": 9, "categoria": "Toalhas & Enxoval", "nome": "Cobre-Munch / Cobre-Mesa Colorido", "preco": 3.50, "estoque": 120, "foto": ""},
+        {"id": 10, "categoria": "Toalhas & Enxoval", "nome": "Guardanapo de Tecido (Diversas Cores)", "preco": 1.50, "estoque": 300, "foto": ""},
+        
+        # Louças & Copos
+        {"id": 11, "categoria": "Louças & Copos", "nome": "Prato de Jantar Raso Branco Liso", "preco": 0.80, "estoque": 300, "foto": ""},
+        {"id": 12, "categoria": "Louças & Copos", "nome": "Prato de Sobremesa Branco Liso", "preco": 0.70, "estoque": 250, "foto": ""},
+        {"id": 13, "categoria": "Louças & Copos", "nome": "Taça para Água / Vinho Transparente", "preco": 1.00, "estoque": 200, "foto": ""},
+        {"id": 14, "categoria": "Louças & Copos", "nome": "Taça de Cerveja / Chope (300ml)", "preco": 1.00, "estoque": 200, "foto": ""},
+        {"id": 15, "categoria": "Louças & Copos", "nome": "Copo Americano / Multiuso", "preco": 0.60, "estoque": 300, "foto": ""},
+        {"id": 16, "categoria": "Louças & Copos", "nome": "Garfo de Jantar Inox", "preco": 0.50, "estoque": 400, "foto": ""},
+        {"id": 17, "categoria": "Louças & Copos", "nome": "Faca de Jantar Inox", "preco": 0.50, "estoque": 400, "foto": ""},
+        {"id": 18, "categoria": "Louças & Copos", "nome": "Colher de Sobremesa Inox", "preco": 0.50, "estoque": 300, "foto": ""},
+        
+        # Serviço & Rechauds
+        {"id": 19, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Redondo Banho-Maria", "preco": 25.00, "estoque": 10, "foto": ""},
+        {"id": 20, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Retangular Duplo", "preco": 35.00, "estoque": 8, "foto": ""},
+        {"id": 21, "categoria": "Serviço & Rechauds", "nome": "Suqueira de Vidro com Torneira (5 Litros)", "preco": 15.00, "estoque": 12, "foto": ""},
+        {"id": 22, "categoria": "Serviço & Rechauds", "nome": "Saladeira / Travesa de Inox", "preco": 5.00, "estoque": 20, "foto": ""},
+        {"id": 23, "categoria": "Serviço & Rechauds", "nome": "Pegador de Salada / Carne Inox", "preco": 2.00, "estoque": 30, "foto": ""},
+        {"id": 24, "categoria": "Serviço & Rechauds", "nome": "Concha para Molho / Sopa Inox", "preco": 2.00, "estoque": 25, "foto": ""},
+        
+        # Equipamentos & Freezers
+        {"id": 25, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal 2 Tampas (400 Litros)", "preco": 200.00, "estoque": 3, "foto": ""},
+        {"id": 26, "categoria": "Equipamentos & Freezers", "nome": "Freezer Vertical Expositor", "preco": 220.00, "estoque": 2, "foto": ""},
+        {"id": 27, "categoria": "Equipamentos & Freezers", "nome": "Caixa Térmica Grande (100 Litros)", "preco": 30.00, "estoque": 10, "foto": ""},
+        {"id": 28, "categoria": "Equipamentos & Freezers", "nome": "Tina Térmica para Bebidas (Madeira/Plástico)", "preco": 25.00, "estoque": 8, "foto": ""}
     ]
 
 if 'cliente_perfil' not in st.session_state:
@@ -478,13 +506,16 @@ elif modo == "Área do Cliente":
             else:
                 for item in itens_exibidos:
                     with st.container():
-                        col_img, col_det, col_qtd = st.columns([1, 2, 1])
-                        with col_img:
-                            st.image(item['foto'], width=120)
+                        col_det, col_qtd = st.columns([3, 1])
                         with col_det:
                             st.markdown(f"#### {item['nome']}")
                             st.caption(f"Categoria: {item['categoria']}")
                             st.write(f"Valor unitário: **R$ {item['preco']:.2f}**")
+                            
+                            if item.get("foto"):
+                                st.image(item['foto'], width=150)
+                            else:
+                                st.caption("🖼️ *Foto pendente de inclusão*")
                             
                             if item.get("tipo_mesa") in ["quadrada", "redonda"]:
                                 st.markdown("---")
@@ -856,7 +887,7 @@ elif modo == "Painel Administrativo":
                 "categoria": st.column_config.SelectboxColumn("Categoria", options=["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"]),
                 "preco": st.column_config.NumberColumn("Preço (R$)", format="R$ %.2f"),
                 "estoque": st.column_config.NumberColumn("Estoque", min_value=0),
-                "foto": st.column_config.LinkColumn("URL da Foto")
+                "foto": st.column_config.TextColumn("URL da Foto / Caminho")
             },
             hide_index=True,
             use_container_width=True,
@@ -878,7 +909,7 @@ elif modo == "Painel Administrativo":
             nova_cat = st.selectbox("Categoria", ["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"])
             novo_preco = st.number_input("Preço da Diária (R$)", min_value=0.0, value=10.0, step=0.50)
             novo_estq = st.number_input("Quantidade em Estoque", min_value=1, value=50)
-            nova_foto = st.text_input("URL da Foto", value="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=400&q=80")
+            nova_foto = st.text_input("URL/Caminho da Foto (deixe em branco se não houver)", value="")
             
             if st.form_submit_button("➕ Cadastrar Item no Catálogo"):
                 if novo_nome:
