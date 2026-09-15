@@ -170,8 +170,8 @@ def buscar_materiais_inteligente(termo, catalogo):
             resultados.append((item, 1.0))
             continue
             
-        sim_nome = max([calcular_similaridade(termo_processado, palavra) for palavra in nome.split()]) if nome.split() else 0
-        sim_cat = max([calcular_similaridade(termo_processado, palavra) for palavra in categoria.split()]) if categoria.split() else 0
+        sim_nome = max([calcular_similaridade(termo_processado, palavra) for palavra in nome.split()])
+        sim_cat = max([calcular_similaridade(termo_processado, palavra) for palavra in categoria.split()])
         maior_sim = max(sim_nome, sim_cat)
         
         if maior_sim >= 0.55:
@@ -592,100 +592,108 @@ elif modo == "Área do Cliente":
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
                         tocar_som("sucesso")
-                        st.success("Orçamento gravado com sucesso! Você pode acompanhá-lo na aba 'Meus Eventos'.")
+                        st.success("Seu orçamento/pedido foi gravado com sucesso! Veja o status na aba 'MEUS EVENTOS'.")
                         st.rerun()
 
-        # TAB 3: MEUS EVENTOS
+        # TAB 3: MEUS EVENTOS / STANDBY
         with tab_standby:
-            st.subheader("📅 Meus Eventos & Orçamentos Salvos")
+            st.subheader("📅 Seus Eventos Salvos e Solicitados")
             
-            if not st.session_state.pedidos_standby:
-                st.info("Você ainda não possui eventos salvos ou pedidos em andamento.")
+            meus_pedidos = [p for p in st.session_state.pedidos_standby if p['cliente']['telefone'] == cli['telefone']]
+            
+            if not meus_pedidos:
+                st.info("Você ainda não salvou nenhum evento.")
             else:
-                for p in st.session_state.pedidos_standby:
-                    with st.expander(f"🎉 {p['evento']} — Data: {p['data']} ({p['status']})"):
-                        st.write(f"**Endereço de Entrega:** {p['endereco']}")
-                        st.write(f"**Subtotal:** R$ {p['subtotal']:.2f} | **Frete:** R$ {p['frete']:.2f} | **Total:** R$ {p['total']:.2f}")
+                for ped in meus_pedidos:
+                    with st.expander(f"🎉 {ped['evento']} — Data: {ped['data']} (Status: {ped['status']})"):
+                        st.write(f"**Endereço:** {ped['endereco']}")
+                        st.write(f"**Valor Total:** R$ {ped['total']:.2f} (Materiais: R$ {ped['subtotal']:.2f} | Frete: R$ {ped['frete']:.2f})")
                         
-                        st.markdown("**Itens Solicitados:**")
-                        for item_det in p.get('itens_detalhe', []):
+                        st.write("**Itens do Pedido:**")
+                        for item_det in ped['itens_detalhe']:
                             st.write(f"- {item_det['qtd']}x {item_det['nome']} (R$ {item_det['total']:.2f})")
-                            
-                        col_p1, col_p2, col_p3 = st.columns(3)
-                        with col_p1:
-                            if st.button("✏️ Editar Pedido", key=f"btn_edit_{p['id']}"):
-                                st.session_state.carrinho_atual = dict(p['itens'])
-                                st.session_state.toalhas_vinculadas = dict(p.get('toalhas', {}))
-                                st.session_state.pedido_edicao_id = p['id']
+                        
+                        col_actions1, col_actions2, col_actions3 = st.columns(3)
+                        
+                        with col_actions1:
+                            if st.button("✏️ Editar Pedido", key=f"btn_edit_{ped['id']}"):
+                                st.session_state.carrinho_atual = dict(ped['itens'])
+                                st.session_state.toalhas_vinculadas = dict(ped['toalhas'])
+                                st.session_state.pedido_edicao_id = ped['id']
                                 tocar_som("click")
                                 st.rerun()
-                        
-                        with col_p2:
+                                
+                        with col_actions2:
                             pdf_p = gerar_pdf_orcamento(
-                                p['cliente'], p['evento'], p['data'], p['endereco'],
-                                p.get('itens_detalhe', []), p['subtotal'], p['frete'], p['total'], p['status']
+                                ped['cliente'], ped['evento'], ped['data'], ped['endereco'],
+                                ped['itens_detalhe'], ped['subtotal'], ped['frete'], ped['total'], ped['status']
                             )
                             st.download_button(
                                 label="📄 Baixar PDF",
                                 data=pdf_p,
-                                file_name=f"Orcamento_{p['id']}_{p['evento'].replace(' ', '_')}.pdf",
+                                file_name=f"Orcamento_{ped['evento'].replace(' ', '_')}.pdf",
                                 mime="application/pdf",
-                                key=f"btn_pdf_stb_{p['id']}"
+                                key=f"btn_pdf_stb_{ped['id']}"
                             )
                             
-                        with col_p3:
-                            msg_wa = f"Olá! Gostaria de falar sobre o meu pedido ID #{p['id']} - {p['evento']} no valor de R$ {p['total']:.2f}."
-                            url_wa = f"https://api.whatsapp.com/send?phone=556298224034&text={urllib.parse.quote(msg_wa)}"
-                            st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><button style="width:100%; background-color:#25d366; color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; cursor:pointer;">📲 Enviar no WhatsApp</button></a>', unsafe_allow_html=True)
+                        with col_actions3:
+                            texto_wpp = f"Olá! Gostaria de confirmar meu pedido *{ped['evento']}* (ID: #{ped['id']}) para a data {ped['data']}. Valor Total: R$ {ped['total']:.2f}."
+                            wpp_url = f"https://api.whatsapp.com/send?phone=556298224034&text={urllib.parse.quote(texto_wpp)}"
+                            st.markdown(f'<a href="{wpp_url}" target="_blank" style="text-decoration:none; background-color:#25d366; color:white; padding:8px 12px; border-radius:5px; font-weight:bold; display:inline-block; text-align:center;">📲 Enviar via WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
-# ⚙️ PAINEL ADMINISTRATIVO
+# 🛠️ PAINEL ADMINISTRATIVO (GESTAO RENASCER)
 # ==========================================
 elif modo == "Painel Administrativo":
-    st.title("⚙️ Painel de Gestão — Renascer Locações")
+    st.title("🛠️ Painel Administrativo — Renascer Locações")
     
-    senha_admin = st.text_input("Digite a senha de administrador:", type="password")
+    tab_admin_pedidos, tab_admin_catalogo = st.tabs(["📥 Gerenciar Pedidos / Homologação", "📦 Gerenciar Catálogo e Estoque"])
     
-    if senha_admin == "renascer123":
-        tab_adm_pedidos, tab_adm_estoque = st.tabs(["📦 Gestão de Pedidos", "🏷️ Gestão de Estoque & Preços"])
+    with tab_admin_pedidos:
+        st.subheader("Pedidos Recebidos")
         
-        with tab_adm_pedidos:
-            st.subheader("Pedidos Recebidos")
-            if not st.session_state.pedidos_standby:
-                st.info("Nenhum pedido cadastrado até o momento.")
-            else:
-                for p in st.session_state.pedidos_standby:
-                    with st.expander(f"Pedido #{p['id']} - {p['cliente']['nome']} ({p['evento']})"):
-                        st.write(f"**Data:** {p['data']} | **Telefone:** {p['cliente']['telefone']}")
-                        st.write(f"**Endereço:** {p['endereco']}")
-                        st.write(f"**Valor Total:** R$ {p['total']:.2f}")
+        if not st.session_state.pedidos_standby:
+            st.info("Nenhum pedido registrado no momento.")
+        else:
+            for p in st.session_state.pedidos_standby:
+                with st.expander(f"ID #{p['id']} - {p['cliente']['nome']} - Evento: {p['evento']} ({p['status']})"):
+                    st.write(f"**Contato:** {p['cliente']['telefone']} | **Data:** {p['data']}")
+                    st.write(f"**Endereço:** {p['endereco']}")
+                    st.write(f"**Total:** R$ {p['total']:.2f}")
+                    
+                    st.markdown("**Itens:**")
+                    for it in p['itens_detalhe']:
+                        st.write(f"- {it['qtd']}x {it['nome']}")
                         
-                        novo_status = st.selectbox(
-                            "Alterar Status do Pedido:",
-                            ["Aguardando Homologação da Renascer", "Homologado (Disponibilidade Confirmada)", "Em Análise", "Cancelado / Indisponível"],
-                            index=0 if p['status'] not in ["Homologado (Disponibilidade Confirmada)", "Em Análise", "Cancelado / Indisponível"] else ["Aguardando Homologação da Renascer", "Homologado (Disponibilidade Confirmada)", "Em Análise", "Cancelado / Indisponível"].index(p['status']),
-                            key=f"status_adm_{p['id']}"
-                        )
-                        
-                        if st.button("Atualizar Status", key=f"btn_save_status_{p['id']}"):
-                            p['status'] = novo_status
-                            tocar_som("sucesso")
-                            st.success("Status atualizado com sucesso!")
+                    if p['status'] != 'Homologado (Disponibilidade Confirmada)':
+                        if st.button("✅ Homologar Pedido (Confirmar Estoque)", key=f"btn_homologar_{p['id']}"):
+                            p['status'] = 'Homologado (Disponibilidade Confirmada)'
+                            tocar_som("homologado")
+                            st.success(f"Pedido #{p['id']} Homologado com Sucesso!")
                             st.rerun()
 
-        with tab_adm_estoque:
-            st.subheader("Catálogo de Produtos")
-            for item in st.session_state.catalogo:
-                col_i1, col_i2, col_i3 = st.columns([2, 1, 1])
-                with col_i1:
-                    st.write(f"**{item['nome']}** ({item['categoria']})")
-                with col_i2:
-                    novo_p = st.number_input("Preço (R$)", value=item['preco'], key=f"p_adm_{item['id']}")
-                with col_i3:
-                    novo_e = st.number_input("Estoque", value=item['estoque'], key=f"e_adm_{item['id']}")
-                
-                item['preco'] = novo_p
-                item['estoque'] = novo_e
-                st.divider()
-    elif senha_admin:
-        st.error("Senha incorreta. Acesso negado.")
+    with tab_admin_catalogo:
+        st.subheader("Produtos Cadastrados")
+        
+        df_cat = pd.DataFrame(st.session_state.catalogo)
+        st.dataframe(df_cat[['id', 'nome', 'categoria', 'preco', 'estoque']], use_container_width=True)
+        
+        st.divider()
+        st.subheader("Adicionar Novo Item ao Catálogo")
+        with st.form("form_add_catalogo"):
+            novo_nome = st.text_input("Nome do Material")
+            nova_cat = st.selectbox("Categoria", ["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"])
+            novo_preco = st.number_input("Preço da Diária (R$)", min_value=0.0, value=10.0, step=0.50)
+            novo_estq = st.number_input("Quantidade em Estoque", min_value=1, value=50)
+            nova_foto = st.text_input("URL da Foto", value="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=400&q=80")
+            
+            if st.form_submit_button("➕ Salvar Item no Catálogo"):
+                if novo_nome:
+                    novo_id = max([i['id'] for i in st.session_state.catalogo], default=0) + 1
+                    st.session_state.catalogo.append({
+                        "id": novo_id, "categoria": nova_cat, "nome": novo_nome,
+                        "preco": novo_preco, "estoque": novo_estq, "foto": nova_foto
+                    })
+                    tocar_som("sucesso")
+                    st.success(f"Item '{novo_nome}' adicionado com sucesso!")
+                    st.rerun()
