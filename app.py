@@ -170,8 +170,8 @@ def buscar_materiais_inteligente(termo, catalogo):
             resultados.append((item, 1.0))
             continue
             
-        sim_nome = max([calcular_similaridade(termo_processado, palavra) for palavra in nome.split()])
-        sim_cat = max([calcular_similaridade(termo_processado, palavra) for palavra in categoria.split()])
+        sim_nome = max([calcular_similaridade(termo_processado, palavra) for palavra in nome.split()]) if nome.split() else 0
+        sim_cat = max([calcular_similaridade(termo_processado, palavra) for palavra in categoria.split()]) if categoria.split() else 0
         maior_sim = max(sim_nome, sim_cat)
         
         if maior_sim >= 0.55:
@@ -520,7 +520,7 @@ elif modo == "Área do Cliente":
                     * **1. Conferência na Entrega:** Ao receber os materiais, confira os itens junto com a nossa equipe. Caso perceba qualquer detalhe, avise-nos imediatamente.
                     * **2. Cuidados e Devolução:** Pedimos o carinho de devolver louças, copos e talheres organizados nas caixas e embalagens plásticas enviadas.
                     * **3. Eventuais Danos:** Sabemos que imprevistos acontecem! Caso ocorra alguma quebra ou perda, será cobrado apenas o valor de custo do item para reposição.
-                    * **4. Confirmação de Reserva:** A finalizing do orçamento realiza a pré-reserva. A confirmação definitiva ocorre após validação da nossa equipe para a data do evento.
+                    * **4. Confirmação de Reserva:** A finalização do orçamento realiza a pré-reserva. A confirmação definitiva ocorre após validação da nossa equipe para a data do evento.
                     
                     *Agradecemos a confiança em nosso trabalho!*
                     """)
@@ -588,126 +588,104 @@ elif modo == "Área do Cliente":
                                 "alerta_tocado": False
                             }
                             st.session_state.pedidos_standby.append(novo_stb)
-
+                        
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
-                        st.session_state.termo_busca = ""
                         tocar_som("sucesso")
-                        st.success("Seu orçamento foi salvo com sucesso!")
+                        st.success("Orçamento gravado com sucesso! Você pode acompanhá-lo na aba 'Meus Eventos'.")
                         st.rerun()
 
-                if not concordou_termos:
-                    st.info("💡 Marque a caixa de seleção dos termos acima para liberar a gravação do pedido.")
-
-                if opcao_fechar == "Confirmar Pedido e Solicitar Reserva de Estoque":
-                    st.markdown("---")
-                    st.subheader("💳 Dados para Pagamento via PIX")
-                    
-                    col_pix1, col_pix2 = st.columns([1, 2])
-                    with col_pix1:
-                        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PIX+Renascer+Locacoes+Chave+6298224034+Valor+{valor_total_bruto:.2f}"
-                        st.image(qr_url, caption="QR Code PIX", width=180)
-                    with col_pix2:
-                        st.write("**Chave PIX (Telefone):** `6298224034`")
-                        st.write("**Favorecido:** Valdir Ferreira Miranda / Renascer Locações")
-                        st.write(f"**Valor do Pedido:** R$ {valor_total_bruto:.2f}")
-                        
-                        txt_whatsapp = f"📋 *NOVO PEDIDO - RENASCER LOCAÇÕES*\n"
-                        txt_whatsapp += f"*Cliente:* {cli['nome']}\n"
-                        txt_whatsapp += f"*Evento:* {nome_identificador}\n"
-                        txt_whatsapp += f"*Data:* {data_festa}\n"
-                        txt_whatsapp += f"*VALOR TOTAL:* R$ {valor_total_bruto:.2f}\n"
-                        txt_whatsapp += f"Olá! Acabei de enviar o pedido pelo aplicativo e gostaria de confirmar a reserva."
-                        
-                        link_wa_fechar = f"https://api.whatsapp.com/send?phone=556298224034&text={urllib.parse.quote(txt_whatsapp)}"
-                        
-                        st.markdown(f"""
-                            <a href="{link_wa_fechar}" target="_blank">
-                                <button style="background-color:#25D366; color:white; border:none; padding:12px; font-size:15px; border-radius:6px; font-weight:bold; cursor:pointer;">
-                                    📲 Enviar Pedido via WhatsApp
-                                </button>
-                            </a>
-                        """, unsafe_allow_html=True)
-
-        # TAB 3: STANDBY & HISTÓRICO
+        # TAB 3: MEUS EVENTOS
         with tab_standby:
-            st.subheader("📅 Meus Eventos e Orçamentos")
+            st.subheader("📅 Meus Eventos & Orçamentos Salvos")
             
-            if tem_orcamento_em_andamento:
-                st.warning("⚠️ Você possui itens no carrinho. Finalize ou limpe o orçamento atual para reabrir pedidos anteriores.")
-            else:
-                if st.button("➕ Iniciar Novo Orçamento Zerado", use_container_width=True):
-                    st.session_state.carrinho_atual = {}
-                    st.session_state.toalhas_vinculadas = {}
-                    st.session_state.pedido_edicao_id = None
-                    tocar_som("click")
-                    st.success("Novo orçamento iniciado!")
-                    st.rerun()
-
-            st.divider()
-
             if not st.session_state.pedidos_standby:
-                st.info("Você ainda não possui orçamentos salvos.")
+                st.info("Você ainda não possui eventos salvos ou pedidos em andamento.")
             else:
                 for p in st.session_state.pedidos_standby:
-                    with st.expander(f"🎉 {p['evento']} — Data: {p['data']} | Status: {p['status']}"):
-                        st.write(f"**Endereço:** {p['endereco']}")
-                        st.write(f"**Subtotal Materiais:** R$ {p['subtotal']:.2f}")
-                        st.write(f"**Taxa de Entrega:** R$ {p['frete']:.2f}")
-                        st.write(f"**Valor Total:** R$ {p['total']:.2f}")
+                    with st.expander(f"🎉 {p['evento']} — Data: {p['data']} ({p['status']})"):
+                        st.write(f"**Endereço de Entrega:** {p['endereco']}")
+                        st.write(f"**Subtotal:** R$ {p['subtotal']:.2f} | **Frete:** R$ {p['frete']:.2f} | **Total:** R$ {p['total']:.2f}")
                         
-                        pdf_p = gerar_pdf_orcamento(
-                            p['cliente'], p['evento'], p['data'], p['endereco'],
-                            p['itens_detalhe'], p['subtotal'], p['frete'], p['total'], p['status']
-                        )
-                        st.download_button(
-                            label="📄 Baixar PDF do Orçamento",
-                            data=pdf_p,
-                            file_name=f"Orcamento_{p['id']}_{p['evento'].replace(' ', '_')}.pdf",
-                            mime="application/pdf",
-                            key=f"dl_pdf_{p['id']}"
-                        )
-                        
-                        if not tem_orcamento_em_andamento:
-                            if st.button(f"✏️ Editar este Pedido (ID #{p['id']})", key=f"reabrir_{p['id']}"):
+                        st.markdown("**Itens Solicitados:**")
+                        for item_det in p.get('itens_detalhe', []):
+                            st.write(f"- {item_det['qtd']}x {item_det['nome']} (R$ {item_det['total']:.2f})")
+                            
+                        col_p1, col_p2, col_p3 = st.columns(3)
+                        with col_p1:
+                            if st.button("✏️ Editar Pedido", key=f"btn_edit_{p['id']}"):
                                 st.session_state.carrinho_atual = dict(p['itens'])
                                 st.session_state.toalhas_vinculadas = dict(p.get('toalhas', {}))
                                 st.session_state.pedido_edicao_id = p['id']
                                 tocar_som("click")
-                                st.success("Pedido reaberto para edição.")
                                 st.rerun()
+                        
+                        with col_p2:
+                            pdf_p = gerar_pdf_orcamento(
+                                p['cliente'], p['evento'], p['data'], p['endereco'],
+                                p.get('itens_detalhe', []), p['subtotal'], p['frete'], p['total'], p['status']
+                            )
+                            st.download_button(
+                                label="📄 Baixar PDF",
+                                data=pdf_p,
+                                file_name=f"Orcamento_{p['id']}_{p['evento'].replace(' ', '_')}.pdf",
+                                mime="application/pdf",
+                                key=f"btn_pdf_stb_{p['id']}"
+                            )
+                            
+                        with col_p3:
+                            msg_wa = f"Olá! Gostaria de falar sobre o meu pedido ID #{p['id']} - {p['evento']} no valor de R$ {p['total']:.2f}."
+                            url_wa = f"https://api.whatsapp.com/send?phone=556298224034&text={urllib.parse.quote(msg_wa)}"
+                            st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><button style="width:100%; background-color:#25d366; color:white; border:none; padding:8px; border-radius:4px; font-weight:bold; cursor:pointer;">📲 Enviar no WhatsApp</button></a>', unsafe_allow_html=True)
 
 # ==========================================
 # ⚙️ PAINEL ADMINISTRATIVO
 # ==========================================
-else:
-    st.header("⚙️ Painel Interno — Renascer Locações")
-    senha = st.text_input("Senha de Acesso", type="password")
+elif modo == "Painel Administrativo":
+    st.title("⚙️ Painel de Gestão — Renascer Locações")
     
-    if senha == "1234":
-        st.subheader("📊 Pedidos para Validação de Estoque")
-        if not st.session_state.pedidos_standby:
-            st.info("Nenhum pedido pendente para validação.")
-        else:
-            for p in st.session_state.pedidos_standby:
-                with st.container():
-                    st.markdown(f"### Pedido #{p['id']} — {p['evento']} ({p['cliente']['nome']})")
-                    st.write(f"**Data da Festa:** {p['data']} | **Contato:** {p['cliente']['telefone']}")
-                    st.write(f"**Endereço:** {p['endereco']}")
-                    st.write(f"**Valor Total:** R$ {p['total']:.2f} (Frete: R$ {p['frete']:.2f})")
-                    st.write(f"**Status:** `{p['status']}`")
-                    
-                    col_h1, col_h2 = st.columns(2)
-                    with col_h1:
-                        if st.button(f"✅ Homologar e Confirmar Estoque (ID #{p['id']})", key=f"btn_homo_{p['id']}"):
-                            p['status'] = "Homologado (Disponibilidade Confirmada)"
-                            p['alerta_tocado'] = False
+    senha_admin = st.text_input("Digite a senha de administrador:", type="password")
+    
+    if senha_admin == "renascer123":
+        tab_adm_pedidos, tab_adm_estoque = st.tabs(["📦 Gestão de Pedidos", "🏷️ Gestão de Estoque & Preços"])
+        
+        with tab_adm_pedidos:
+            st.subheader("Pedidos Recebidos")
+            if not st.session_state.pedidos_standby:
+                st.info("Nenhum pedido cadastrado até o momento.")
+            else:
+                for p in st.session_state.pedidos_standby:
+                    with st.expander(f"Pedido #{p['id']} - {p['cliente']['nome']} ({p['evento']})"):
+                        st.write(f"**Data:** {p['data']} | **Telefone:** {p['cliente']['telefone']}")
+                        st.write(f"**Endereço:** {p['endereco']}")
+                        st.write(f"**Valor Total:** R$ {p['total']:.2f}")
+                        
+                        novo_status = st.selectbox(
+                            "Alterar Status do Pedido:",
+                            ["Aguardando Homologação da Renascer", "Homologado (Disponibilidade Confirmada)", "Em Análise", "Cancelado / Indisponível"],
+                            index=0 if p['status'] not in ["Homologado (Disponibilidade Confirmada)", "Em Análise", "Cancelado / Indisponível"] else ["Aguardando Homologação da Renascer", "Homologado (Disponibilidade Confirmada)", "Em Análise", "Cancelado / Indisponível"].index(p['status']),
+                            key=f"status_adm_{p['id']}"
+                        )
+                        
+                        if st.button("Atualizar Status", key=f"btn_save_status_{p['id']}"):
+                            p['status'] = novo_status
                             tocar_som("sucesso")
-                            st.success("Pedido Homologado.")
+                            st.success("Status atualizado com sucesso!")
                             st.rerun()
-                    with col_h2:
-                        if st.button(f"❌ Indisponível para a Data (ID #{p['id']})", key=f"btn_rec_{p['id']}"):
-                            p['status'] = "Indisponível (Sem Estoque para a Data)"
-                            st.error("Status alterado para indisponível.")
-                            st.rerun()
-                    st.divider()
+
+        with tab_adm_estoque:
+            st.subheader("Catálogo de Produtos")
+            for item in st.session_state.catalogo:
+                col_i1, col_i2, col_i3 = st.columns([2, 1, 1])
+                with col_i1:
+                    st.write(f"**{item['nome']}** ({item['categoria']})")
+                with col_i2:
+                    novo_p = st.number_input("Preço (R$)", value=item['preco'], key=f"p_adm_{item['id']}")
+                with col_i3:
+                    novo_e = st.number_input("Estoque", value=item['estoque'], key=f"e_adm_{item['id']}")
+                
+                item['preco'] = novo_p
+                item['estoque'] = novo_e
+                st.divider()
+    elif senha_admin:
+        st.error("Senha incorreta. Acesso negado.")
