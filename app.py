@@ -3,7 +3,6 @@ import pandas as pd
 import urllib.parse
 from datetime import datetime
 from difflib import SequenceMatcher
-import math
 
 # Configuração da página
 st.set_page_config(
@@ -24,9 +23,8 @@ def calcular_distancia_cep(cep_destino):
         clean_cep = str(cep_destino).replace("-", "").replace(".", "").strip()
         if len(clean_cep) != 8 or not clean_cep.isdigit():
             return None
-        # Simulação parametrizada baseada nas faixas de CEP de Goiânia e Região Metropolitana
         base_num = int(clean_cep[:5])
-        renascer_num = 74353  # Jardim Presidente
+        renascer_num = 74353  # CEP Jardim Presidente
         
         diff_abs = abs(base_num - renascer_num)
         km_estimado = round(3.5 + (diff_abs / 18.0), 1)
@@ -42,7 +40,7 @@ def calcular_distancia_cep(cep_destino):
     except Exception:
         return None
 
-# --- ALGORITMO DE BUSCA INTELIGENTE COM APORXIMAÇÃO ---
+# --- ALGORITMO DE BUSCA INTELIGENTE ---
 SINONIMOS = {
     "pano": "toalha",
     "panos": "toalha",
@@ -70,12 +68,10 @@ def buscar_materiais_inteligente(termo, catalogo):
         nome = item['nome'].lower()
         categoria = item['categoria'].lower()
         
-        # Busca direta por substring ou sinônimo
         if termo_processado in nome or termo_processado in categoria:
             resultados.append((item, 1.0))
             continue
             
-        # Busca por aproximação fonética/digitação incorreta
         sim_nome = max([calcular_similaridade(termo_processado, palavra) for palavra in nome.split()])
         sim_cat = max([calcular_similaridade(termo_processado, palavra) for palavra in categoria.split()])
         maior_sim = max(sim_nome, sim_cat)
@@ -156,7 +152,7 @@ if modo == "Meu Perfil":
             
         with st.form("form_novo_endereco"):
             st.write("**Adicionar Novo Endereço:**")
-            rotulo = st.text_input("Identificação (ex: Minha Casa, Chácara da Família, Salão de Festas)")
+            rotulo = st.text_input("Identificação (ex: Minha Casa, Chácara, Salão de Festas)")
             logradouro = st.text_input("Endereço Completo (Rua, Nº, Bairro, Cidade)")
             cep = st.text_input("CEP do Local")
             
@@ -174,21 +170,33 @@ if modo == "Meu Perfil":
 # ==========================================
 elif modo == "Área do Cliente":
     
-    # ETAPA 1: CADASTRO RÁPIDO
+    # APRESENTAÇÃO INSTITUCIONAL E CADASTRO RÁPIDO
     if not st.session_state.cliente_perfil:
-        st.title("🎉 Bem-vindo à Renascer Locações")
-        st.markdown("##### Preencha seus dados abaixo para liberar o catálogo e realizar orçamentos instantâneos:")
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 22px; border-radius: 12px; border-left: 6px solid #1E3A8A; margin-bottom: 20px;">
+            <h1 style="color: #1E3A8A; margin-bottom: 5px;">🎉 Renascer Locações</h1>
+            <h4 style="color: #475569; margin-top: 0px;">Tradição, Qualidade e Pontualidade para o seu Evento</h4>
+            <p style="font-size: 15px; color: #334155;">
+                Com <b>mais de 20 anos de atuação no mercado</b>, a <b>Renascer Locações</b> é referência na locação de móveis, pratos, copos, talheres, toalhas, rechauds e equipamentos para eventos. Nosso compromisso é entregar materiais higienizados, conservados e com a agilidade que a sua celebração merece.
+            </p>
+            <p style="font-size: 14px; color: #64748B; margin-bottom: 0px;">
+                📍 <b>Sede Própria:</b> Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO | 📞 <b>Contato:</b> (62) 3290-5515 / (62) 98224-034
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.subheader("👋 Seja Bem-Vindo(a)! Preencha seus dados para acessar o catálogo:")
         
         with st.form("form_cad_inicial"):
             c_nome = st.text_input("Nome Completo*")
             c_tel = st.text_input("WhatsApp / Telefone*")
             c_email = st.text_input("E-mail")
             st.markdown("---")
-            st.markdown("**Endereço Residencial Inicial:**")
-            c_end_rua = st.text_input("Endereço Completo (Rua, Nº, Bairro)*")
+            st.markdown("**Endereço Residencial:**")
+            c_end_rua = st.text_input("Endereço Completo (Rua, Nº, Bairro, Cidade)*")
             c_end_cep = st.text_input("CEP Residencial*")
             
-            if st.form_submit_button("Acessar Catálogo ➔"):
+            if st.form_submit_button("Acessar Catálogo & Fazer Orçamento ➔"):
                 if c_nome and c_tel and c_end_rua and c_end_cep:
                     st.session_state.cliente_perfil = {
                         "nome": c_nome, "telefone": c_tel, "email": c_email
@@ -203,7 +211,7 @@ elif modo == "Área do Cliente":
                 else:
                     st.error("Por favor, preencha todos os campos obrigatórios (*).")
 
-    # ETAPA 2: CATÁLOGO, SELEÇÃO E ORÇAMENTO
+    # CATÁLOGO, SELEÇÃO E ORÇAMENTO
     else:
         cli = st.session_state.cliente_perfil
         st.title(f"Olá, {cli['nome']}!")
@@ -313,7 +321,6 @@ elif modo == "Área do Cliente":
                     subtotal_materiais += tot_prod
                     st.write(f"• **{q}x {prod['nome']}** — R$ {tot_prod:.2f}")
                     
-                    # Incluir toalha vinculada se houver
                     if item_id in st.session_state.toalhas_vinculadas:
                         t_info = st.session_state.toalhas_vinculadas[item_id]
                         tot_toalha = t_info['preco'] * q
@@ -353,7 +360,7 @@ elif modo == "Área do Cliente":
                             st.session_state.pedidos_standby.append(novo_stb)
                             st.session_state.carrinho_atual = {}
                             tocar_som("sucesso")
-                            st.success("Pedido salvo em Standby com sucesso! Você pode consultá-lo a qualquer momento.")
+                            st.success("Pedido salvo em Standby com sucesso!")
                             st.rerun()
                         else:
                             st.error("Por favor, digite um nome para identificar a sua festa.")
