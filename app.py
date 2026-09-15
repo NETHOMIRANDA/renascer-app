@@ -97,7 +97,7 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
     legal_style = ParagraphStyle('LegalStyle', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#334155'), spaceAfter=4)
     
     story.append(Paragraph("<b>RENASCER LOCAÇÕES E EVENTOS</b>", title_style))
-    story.append(Paragraph("Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO<br/>Contato: (62) 3290-5515 | WhatsApp: (62) 98224-0340", sub_style))
+    story.append(Paragraph("Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO<br/>Contato: (62) 3290-5515 | WhatsApp: (62) 98224-0434", sub_style))
     story.append(Spacer(1, 8))
     
     dados_cli = [
@@ -282,7 +282,7 @@ if 'termo_busca' not in st.session_state:
 
 # --- BOTÃO FLUTUANTE DE AJUDA WHATSAPP ---
 st.markdown("""
-    <a href="https://api.whatsapp.com/send?phone=5562982240340&text=Olá!%20Estou%20no%20aplicativo%20da%20Renascer%20Locações%20e%20gostaria%20de%20tirar%20uma%20dúvida." target="_blank" style="position:fixed;bottom:20px;right:20px;background-color:#25d366;color:white;border-radius:50px;text-align:center;font-size:15px;padding:12px 20px;box-shadow: 2px 2px 8px #888888;z-index:999999;text-decoration:none;font-weight:bold;">
+    <a href="https://api.whatsapp.com/send?phone=5562982240434&text=Olá!%20Estou%20no%20aplicativo%20da%20Renascer%20Locações%20e%20gostaria%20de%20tirar%20uma%20dúvida." target="_blank" style="position:fixed;bottom:20px;right:20px;background-color:#25d366;color:white;border-radius:50px;text-align:center;font-size:15px;padding:12px 20px;box-shadow: 2px 2px 8px #888888;z-index:999999;text-decoration:none;font-weight:bold;">
         💬 Falar com um Atendente
     </a>
 """, unsafe_allow_html=True)
@@ -359,7 +359,7 @@ elif modo == "Área do Cliente":
                         🗺️ Como Chegar (Google Maps)
                     </a>
                 </div>
-                📞 (62) 3290-5515 | WhatsApp: (62) 98224-0340
+                📞 (62) 3290-5515 | WhatsApp: (62) 98224-0434
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -835,7 +835,7 @@ elif modo == "Área do Cliente":
                             
                         with col_actions3:
                             texto_wpp = f"Olá! Gostaria de confirmar meu pedido *{ped['evento']}* (ID: #{ped['id']}) para a data {ped['data']}. Valor Total: R$ {ped['total']:.2f}."
-                            wpp_url = f"https://api.whatsapp.com/send?phone=5562982240340&text={urllib.parse.quote(texto_wpp)}"
+                            wpp_url = f"https://api.whatsapp.com/send?phone=5562982240434&text={urllib.parse.quote(texto_wpp)}"
                             st.markdown(f'<a href="{wpp_url}" target="_blank" style="text-decoration:none; background-color:#25d366; color:white; padding:8px 12px; border-radius:5px; font-weight:bold; display:inline-block; text-align:center;">📲 Enviar via WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
