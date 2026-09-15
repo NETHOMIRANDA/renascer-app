@@ -97,7 +97,7 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
     legal_style = ParagraphStyle('LegalStyle', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#334155'), spaceAfter=4)
     
     story.append(Paragraph("<b>RENASCER LOCAÇÕES E EVENTOS</b>", title_style))
-    story.append(Paragraph("Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO<br/>Contato: (62) 3290-5515 | WhatsApp: (62) 98224-034", sub_style))
+    story.append(Paragraph("Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO<br/>Contato: (62) 3290-5515 | WhatsApp: (62) 98224-0340", sub_style))
     story.append(Spacer(1, 8))
     
     dados_cli = [
@@ -254,7 +254,7 @@ if 'termo_busca' not in st.session_state:
 
 # --- BOTÃO FLUTUANTE DE AJUDA WHATSAPP ---
 st.markdown("""
-    <a href="https://api.whatsapp.com/send?phone=556298224034&text=Olá!%20Estou%20no%20aplicativo%20da%20Renascer%20Locações%20e%20gostaria%20de%20tirar%20uma%20dúvida." target="_blank" style="position:fixed;bottom:20px;right:20px;background-color:#25d366;color:white;border-radius:50px;text-align:center;font-size:15px;padding:12px 20px;box-shadow: 2px 2px 8px #888888;z-index:999999;text-decoration:none;font-weight:bold;">
+    <a href="https://api.whatsapp.com/send?phone=5562982240340&text=Olá!%20Estou%20no%20aplicativo%20da%20Renascer%20Locações%20e%20gostaria%20de%20tirar%20uma%20dúvida." target="_blank" style="position:fixed;bottom:20px;right:20px;background-color:#25d366;color:white;border-radius:50px;text-align:center;font-size:15px;padding:12px 20px;box-shadow: 2px 2px 8px #888888;z-index:999999;text-decoration:none;font-weight:bold;">
         💬 Falar com um Atendente
     </a>
 """, unsafe_allow_html=True)
@@ -331,7 +331,7 @@ elif modo == "Área do Cliente":
                         🗺️ Como Chegar (Google Maps)
                     </a>
                 </div>
-                📞 (62) 3290-5515 | WhatsApp: (62) 98224-034
+                📞 (62) 3290-5515 | WhatsApp: (62) 98224-0340
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -804,7 +804,7 @@ elif modo == "Área do Cliente":
                             
                         with col_actions3:
                             texto_wpp = f"Olá! Gostaria de confirmar meu pedido *{ped['evento']}* (ID: #{ped['id']}) para a data {ped['data']}. Valor Total: R$ {ped['total']:.2f}."
-                            wpp_url = f"https://api.whatsapp.com/send?phone=556298224034&text={urllib.parse.quote(texto_wpp)}"
+                            wpp_url = f"https://api.whatsapp.com/send?phone=5562982240340&text={urllib.parse.quote(texto_wpp)}"
                             st.markdown(f'<a href="{wpp_url}" target="_blank" style="text-decoration:none; background-color:#25d366; color:white; padding:8px 12px; border-radius:5px; font-weight:bold; display:inline-block; text-align:center;">📲 Enviar via WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
@@ -841,13 +841,38 @@ elif modo == "Painel Administrativo":
                             st.rerun()
 
     with tab_admin_catalogo:
-        st.subheader("Produtos Cadastrados")
+        st.subheader("📦 Catálogo de Produtos e Gestão de Estoque")
+        st.caption("Edite os valores diretamente na tabela ou selecione uma linha e pressione 'Delete' para excluir o item do catálogo.")
         
         df_cat = pd.DataFrame(st.session_state.catalogo)
-        st.dataframe(df_cat[['id', 'nome', 'categoria', 'preco', 'estoque']], use_container_width=True)
         
-        st.divider()
-        st.subheader("Adicionar Novo Item ao Catálogo")
+        # Tabela editável interativa com exclusão/adição nativa
+        df_editado = st.data_editor(
+            df_cat,
+            num_rows="dynamic",
+            column_config={
+                "id": st.column_config.NumberColumn("ID", disabled=True),
+                "nome": st.column_config.TextColumn("Nome do Item", required=True),
+                "categoria": st.column_config.SelectboxColumn("Categoria", options=["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"]),
+                "preco": st.column_config.NumberColumn("Preço (R$)", format="R$ %.2f"),
+                "estoque": st.column_config.NumberColumn("Estoque", min_value=0),
+                "foto": st.column_config.LinkColumn("URL da Foto")
+            },
+            hide_index=True,
+            use_container_width=True,
+            key="editor_catalogo_admin"
+        )
+        
+        col_salvar, col_espaco = st.columns([1, 3])
+        with col_salvar:
+            if st.button("💾 Salvar Alterações / Exclusões no Catálogo", use_container_width=True):
+                st.session_state.catalogo = df_editado.to_dict(orient="records")
+                tocar_som("sucesso")
+                st.success("Catálogo e estoque atualizados com sucesso!")
+                st.rerun()
+
+        st.markdown("---")
+        st.subheader("➕ Adicionar Novo Item ao Catálogo")
         with st.form("form_add_catalogo"):
             novo_nome = st.text_input("Nome do Material")
             nova_cat = st.selectbox("Categoria", ["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"])
@@ -855,7 +880,7 @@ elif modo == "Painel Administrativo":
             novo_estq = st.number_input("Quantidade em Estoque", min_value=1, value=50)
             nova_foto = st.text_input("URL da Foto", value="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=400&q=80")
             
-            if st.form_submit_button("➕ Salvar Item no Catálogo"):
+            if st.form_submit_button("➕ Cadastrar Item no Catálogo"):
                 if novo_nome:
                     novo_id = max([i['id'] for i in st.session_state.catalogo], default=0) + 1
                     st.session_state.catalogo.append({
