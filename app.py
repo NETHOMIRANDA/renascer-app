@@ -184,12 +184,37 @@ if 'pedidos_standby' not in st.session_state:
 if 'pedido_edicao_id' not in st.session_state:
     st.session_state.pedido_edicao_id = None
 
+if 'termo_busca' not in st.session_state:
+    st.session_state.termo_busca = ""
+
 # --- BOTÃO FLUTUANTE DE AJUDA WHATSAPP ---
 st.markdown("""
     <a href="https://api.whatsapp.com/send?phone=556298224034&text=Olá!%20Estou%20no%20aplicativo%20da%20Renascer%20Locações%20e%20preciso%20de%20ajuda%20com%20meu%20pedido." target="_blank" style="position:fixed;bottom:20px;right:20px;background-color:#25d366;color:white;border-radius:50px;text-align:center;font-size:15px;padding:12px 20px;box-shadow: 2px 2px 8px #888888;z-index:999999;text-decoration:none;font-weight:bold;">
         💬 Dúvidas? Fale Conosco
     </a>
 """, unsafe_allow_html=True)
+
+# --- MODAL DO CARDÁPIO RESUMIDO DE MATERIAIS ---
+@st.dialog("📋 Cardápio Resumido de Materiais", width="large")
+def abrir_cardapio_resumido():
+    st.write("Clique no material desejado para ir direto para a escolha da quantidade e subitens:")
+    st.markdown("---")
+    
+    # Ordenar catálogo por ordem alfabética de nome
+    catalogo_ordenado = sorted(st.session_state.catalogo, key=lambda x: x['nome'])
+    
+    # Container rolável
+    with st.container(height=420):
+        for item in catalogo_ordenado:
+            col_txt, col_btn = st.columns([3, 1])
+            with col_txt:
+                st.markdown(f"**{item['nome']}**  \n<small style='color:gray;'>{item['categoria']} — R$ {item['preco']:.2f}</small>", unsafe_allow_html=True)
+            with col_btn:
+                if st.button("Seleccionar ➔", key=f"btn_sel_cardapio_{item['id']}"):
+                    st.session_state.termo_busca = item['nome']
+                    tocar_som("click")
+                    st.rerun()
+            st.divider()
 
 # --- MENU LATERAL DE NAVEGAÇÃO ---
 st.sidebar.title("📌 Navegação")
@@ -308,6 +333,7 @@ elif modo == "Área do Cliente":
                 st.session_state.carrinho_atual = {}
                 st.session_state.toalhas_vinculadas = {}
                 st.session_state.pedido_edicao_id = None
+                st.session_state.termo_busca = ""
                 tocar_som("click")
                 st.rerun()
 
@@ -316,15 +342,23 @@ elif modo == "Área do Cliente":
 
         tab_catalogo, tab_carrinho, tab_standby = st.tabs(["🛒 Catálogo de Materiais", "📋 Finalizar Orçamento & Frete", "📅 Eventos & Histórico"])
         
-        # TAB 1: CATÁLOGO COM BUSCA INTELIGENTE
+        # TAB 1: CATÁLOGO COM BUSCA INTELIGENTE E CARDÁPIO RESUMIDO
         with tab_catalogo:
             st.subheader("Qual material você procura?")
-            termo_busca = st.text_input("🔍 Digite o nome do item (ex: mesa, frizzer, pano para mesa, copo, taça):", key="busca_inteligente")
             
-            itens_exibidos = buscar_materiais_inteligente(termo_busca, st.session_state.catalogo)
+            col_busca, col_cardapio = st.columns([3, 1])
+            with col_busca:
+                input_busca = st.text_input("🔍 Digite o nome do item (ex: mesa, frizzer, pano, copo):", value=st.session_state.termo_busca, key="input_busca_campo")
+                st.session_state.termo_busca = input_busca
+            with col_cardapio:
+                st.write("&#160;")
+                if st.button("📋 Cardápio Resumido", use_container_width=True):
+                    abrir_cardapio_resumido()
+
+            itens_exibidos = buscar_materiais_inteligente(st.session_state.termo_busca, st.session_state.catalogo)
             
             if not itens_exibidos:
-                st.warning("Nenhum material encontrado exatamente com este termo. Tente digitar de outra forma ou fale com nosso suporte no botão ao lado.")
+                st.warning("Nenhum material encontrado exatamente com este termo. Clique no botão **📋 Cardápio Resumido** ao lado para ver a lista completa de materiais.")
             else:
                 for item in itens_exibidos:
                     with st.container():
@@ -501,6 +535,7 @@ elif modo == "Área do Cliente":
 
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
+                        st.session_state.termo_busca = ""
                         tocar_som("sucesso")
                         st.success("Pedido gravado com sucesso! Redirecionando...")
                         st.rerun()
