@@ -294,22 +294,23 @@ if modo == "Meu Perfil":
 # ==========================================
 elif modo == "Área do Cliente":
     
+    # BLOCO FIXO DE APRESENTAÇÃO DA EMPRESA COM O LINK DIRETO DO GOOGLE MAPS
+    st.markdown("""
+    <div style="background-color: #f8f9fa; padding: 18px; border-radius: 10px; border-left: 5px solid #1E3A8A; margin-bottom: 20px;">
+        <h2 style="color: #1E3A8A; margin-bottom: 2px;">Renascer Locações e Eventos</h2>
+        <p style="font-size: 14px; color: #475569; margin: 0px;">Acesso ao Catálogo e Sistema de Reservas de Materiais</p>
+        <p style="font-size: 13px; color: #64748B; margin-top: 8px; margin-bottom: 0px;">
+            📍 Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO 
+            <a href="https://maps.app.goo.gl/KRxqyapDwF3QVFtW8" target="_blank" style="text-decoration:none; background-color:#1E3A8A; color:white; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:bold; margin-left:6px;">
+                🗺️ Como Chegar (Google Maps)
+            </a>
+            <br/>📞 (62) 3290-5515 | WhatsApp: (62) 98224-034
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
     # TELA DE CADASTRO INICIAL
     if not st.session_state.cliente_perfil:
-        st.markdown("""
-        <div style="background-color: #f8f9fa; padding: 18px; border-radius: 10px; border-left: 5px solid #1E3A8A; margin-bottom: 20px;">
-            <h2 style="color: #1E3A8A; margin-bottom: 2px;">Renascer Locações e Eventos</h2>
-            <p style="font-size: 14px; color: #475569; margin: 0px;">Acesso ao Catálogo e Sistema de Reservas de Materiais</p>
-            <p style="font-size: 13px; color: #64748B; margin-top: 8px; margin-bottom: 0px;">
-                📍 Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO 
-                <a href="https://maps.google.com/?q=Rua+Presidente+Rodrigues+Alves+Quadra+30+Lote+06+Jardim+Presidente+Goiania" target="_blank" style="text-decoration:none; background-color:#1E3A8A; color:white; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:4px;">
-                    🗺️ Ver no Mapa
-                </a>
-                <br/>📞 (62) 3290-5515 | WhatsApp: (62) 98224-034
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
         st.subheader("Informe seus dados para iniciar o orçamento:")
         
         with st.form("form_cad_inicial"):
@@ -335,12 +336,12 @@ elif modo == "Área do Cliente":
                 else:
                     st.error("Por favor, preencha todos os campos obrigatórios (*).")
 
-    # SEGUNDA TELA: NAVEGAÇÃO SUPERIOR DIRETA E CABEÇALHO FIXO
+    # SEGUNDA TELA: NAVEGAÇÃO SUPERIOR DIRETA
     else:
         cli = st.session_state.cliente_perfil
         tem_orcamento_em_andamento = bool(st.session_state.carrinho_atual)
         
-        # CUMPRIMENTO INFORMATIVO, SÓBRIO E DISCRETO NO TOPO
+        # CUMPRIMENTO INFORMATIVO NO TOPO
         col_saudacao, col_status_carrinho = st.columns([3, 1])
         with col_saudacao:
             st.markdown(f"<p style='font-size:14px; color:#475569; margin:0px;'>Cliente: <b>{cli['nome']}</b> | Tel: {cli['telefone']}</p>", unsafe_allow_html=True)
@@ -427,7 +428,7 @@ elif modo == "Área do Cliente":
                                 tocar_som("click")
                     st.divider()
 
-        # TAB 2: FINALIZAR ORÇAMENTO (COM ESPELHO DO ORÇAMENTO E CLÁUSULAS DE ENTREGA)
+        # TAB 2: FINALIZAR ORÇAMENTO
         with tab_carrinho:
             st.subheader("📋 Resumo Formal do Orçamento e Cláusulas")
             
@@ -540,7 +541,6 @@ elif modo == "Área do Cliente":
                 
                 nome_identificador = st.text_input("Identificação do Evento (ex: Aniversário, Casamento, Almoço de Família):")
 
-                # CONCLUIR/ARQUIVAR PEDIDO: LIBERA SESSÃO PARA NOVO ORÇAMENTO
                 if st.button("💾 Gravar e Finalizar Orçamento", use_container_width=True):
                     if not nome_identificador:
                         st.error("Digite o nome identificador do evento.")
@@ -579,7 +579,6 @@ elif modo == "Área do Cliente":
                             }
                             st.session_state.pedidos_standby.append(novo_stb)
 
-                        # Limpeza para permitir novos pedidos
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
                         st.session_state.termo_busca = ""
@@ -621,11 +620,9 @@ elif modo == "Área do Cliente":
         with tab_standby:
             st.subheader("📅 Eventos Cadastrados & Histórico")
             
-            # REGRA DE BLOQUEIO / EXIBIÇÃO DO BOTÃO "NOVO PEDIDO"
             if tem_orcamento_em_andamento:
                 st.warning("⚠️ Você possui um orçamento em andamento no carrinho. Finalize ou arquive o orçamento atual para poder criar um novo pedido ou reabrir registros anteriores.")
             else:
-                # O botão só aparece se NÃO houver orçamento aberto
                 if st.button("➕ Iniciar Novo Orçamento Zerado", use_container_width=True):
                     st.session_state.carrinho_atual = {}
                     st.session_state.toalhas_vinculadas = {}
@@ -658,7 +655,6 @@ elif modo == "Área do Cliente":
                             key=f"dl_pdf_{p['id']}"
                         )
                         
-                        # O BOTÃO DE REABRIR SÓ É EXIBIDO SE O CARRINHO ESTIVER LIVRE
                         if not tem_orcamento_em_andamento:
                             if st.button(f"✏️ Reabrir e Alterar este Pedido (ID #{p['id']})", key=f"reabrir_{p['id']}"):
                                 st.session_state.carrinho_atual = dict(p['itens'])
