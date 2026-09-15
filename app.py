@@ -368,7 +368,32 @@ elif modo == "Área do Cliente":
                             st.warning("Nenhum CEP localizado para este nome de rua.")
         
         c_num = st.text_input("Número e Complemento (ex: Qd. 10 Lt. 05 / Ap. 302)*", key="cad_num")
-        
+
+        st.markdown("---")
+        st.write("### 🏢 Tipo do Imóvel Residencial e Acesso")
+        tipo_imovel_cad = st.selectbox(
+            "Selecione o tipo do imóvel residencial:",
+            ["Residência (Casa)", "Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"],
+            key="cad_tipo_imovel"
+        )
+
+        cad_tem_dificuldade = False
+        cad_grau_dificuldade = 1
+        cad_obs_dificuldade = ""
+
+        if tipo_imovel_cad in ["Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"]:
+            st.write("**Atenção:** Locais com escadas, elevadores demorados ou longas distâncias a pé exigem equipe adicional.")
+            resp_dif_cad = st.radio(
+                "Existe dificuldade ou longa distância a pé para o descarregamento dos materiais nesta residência?",
+                ["Não", "Sim"],
+                key="cad_radio_dificuldade"
+            )
+            
+            if resp_dif_cad == "Sim":
+                cad_tem_dificuldade = True
+                cad_grau_dificuldade = st.slider("De 1 a 10, qual o grau de dificuldade do descarregamento?", min_value=1, max_value=10, value=3, key="cad_sld_grau_dif")
+                cad_obs_dificuldade = st.text_area("Descreva o motivo da dificuldade (ex: 3º andar de escada, caminhada longa do estacionamento):", key="cad_txt_obs_dificuldade")
+
         if st.button("Concluir Cadastro e Ir para o Catálogo ➔", use_container_width=True):
             if not c_nome or not c_tel or not c_cep or not c_num:
                 st.error("Por favor, preencha todos os campos obrigatórios (*).")
@@ -382,7 +407,11 @@ elif modo == "Área do Cliente":
                 st.session_state.enderecos_cadastrados.append({
                     "rotulo": "Minha Residência",
                     "logradouro": end_completo,
-                    "cep": str(c_cep).replace("-", "").replace(".", "").strip()
+                    "cep": str(c_cep).replace("-", "").replace(".", "").strip(),
+                    "tipo_imovel": tipo_imovel_cad,
+                    "tem_dificuldade": cad_tem_dificuldade,
+                    "grau_dificuldade": cad_grau_dificuldade,
+                    "obs_dificuldade": cad_obs_dificuldade
                 })
                 tocar_som("sucesso")
                 st.rerun()
@@ -508,12 +537,19 @@ elif modo == "Área do Cliente":
                 end_rua_festa = ""
                 end_cep_festa = ""
                 cep_validado_ok = False
-                
+                tem_dificuldade = False
+                grau_dificuldade = 1
+                obs_dificuldade = ""
+
                 if tipo_local == "Sera na Minha Casa (Endereço do Cadastro)":
                     if st.session_state.enderecos_cadastrados:
-                        end_rua_festa = st.session_state.enderecos_cadastrados[0]['logradouro']
-                        end_cep_festa = st.session_state.enderecos_cadastrados[0]['cep']
+                        end_cad = st.session_state.enderecos_cadastrados[0]
+                        end_rua_festa = end_cad['logradouro']
+                        end_cep_festa = end_cad['cep']
                         cep_validado_ok = True
+                        tem_dificuldade = end_cad.get('tem_dificuldade', False)
+                        grau_dificuldade = end_cad.get('grau_dificuldade', 1)
+                        obs_dificuldade = end_cad.get('obs_dificuldade', "")
                         st.info(f"📍 **Endereço Selecionado:** {end_rua_festa} (CEP: {end_cep_festa})")
                 else:
                     st.write("**Informe o CEP do novo local de entrega:**")
@@ -541,33 +577,26 @@ elif modo == "Área do Cliente":
                                             st.write(f"👉 **CEP:** `{c2.get('cep')}` — {c2.get('logradouro')}, {c2.get('bairro')}")
                                     else:
                                         st.warning("Nenhum CEP encontrado.")
-                
-                st.markdown("---")
-                st.write("### 🏢 Tipo de Imóvel e Acesso para Descarregamento")
-                
-                tipo_imovel = st.selectbox(
-                    "Selecione o tipo do local de entrega:",
-                    ["Residência (Casa)", "Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"],
-                    key="sel_tipo_imovel_op"
-                )
-                
-                tem_dificuldade = False
-                grau_dificuldade = 1
-                taxa_dificuldade = 0.0
-                obs_dificuldade = ""
-                
-                if tipo_imovel in ["Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"]:
-                    st.write("**Atenção:** Locais com escadas, elevadores demorados ou longas distâncias a pé exigem equipe adicional.")
-                    resp_dif = st.radio(
-                        "Existe dificuldade ou longa distância a pé para o descarregamento dos materiais?",
-                        ["Não", "Sim"],
-                        key="radio_dificuldade"
+                    
+                    st.markdown("---")
+                    st.write("### 🏢 Tipo de Imóvel e Acesso para o Novo Local")
+                    tipo_imovel_op = st.selectbox(
+                        "Selecione o tipo do local de entrega:",
+                        ["Residência (Casa)", "Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"],
+                        key="sel_tipo_imovel_op"
                     )
                     
-                    if resp_dif == "Sim":
-                        tem_dificuldade = True
-                        grau_dificuldade = st.slider("De 1 a 10, qual o grau de dificuldade do descarregamento?", min_value=1, max_value=10, value=3, key="sld_grau_dif")
-                        obs_dificuldade = st.text_area("Descreva o motivo da dificuldade (ex: 3º andar de escada, 150m de caminhada do caminhão até o salão):", key="txt_obs_dificuldade")
+                    if tipo_imovel_op in ["Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"]:
+                        st.write("**Atenção:** Locais com escadas, elevadores demorados ou longas distâncias a pé exigem equipe adicional.")
+                        resp_dif_novo = st.radio(
+                            "Existe dificuldade ou longa distância a pé para o descarregamento dos materiais?",
+                            ["Não", "Sim"],
+                            key="radio_dificuldade_novo"
+                        )
+                        if resp_dif_novo == "Sim":
+                            tem_dificuldade = True
+                            grau_dificuldade = st.slider("De 1 a 10, qual o grau de dificuldade do descarregamento?", min_value=1, max_value=10, value=3, key="sld_grau_dif_novo")
+                            obs_dificuldade = st.text_area("Descreva o motivo da dificuldade (ex: 3º andar de escada, caminhada longa do estacionamento):", key="txt_obs_dificuldade_novo")
 
                 col_dt1, col_dt2 = st.columns(2)
                 with col_dt1:
@@ -622,6 +651,7 @@ elif modo == "Área do Cliente":
                 st.markdown(tabela_itens_html, unsafe_allow_html=True)
                 
                 # CÁLCULO DA TAXA ADICIONAL DE DIFICULDADE (Base 30,00 + Grau % sobre os Materiais)
+                taxa_dificuldade = 0.0
                 if tem_dificuldade:
                     taxa_dificuldade = 30.00 + (subtotal_materiais * (grau_dificuldade / 100.0))
 
@@ -729,7 +759,7 @@ elif modo == "Área do Cliente":
                         st.success("🎉 Seu pedido foi enviado com sucesso e está aguardando homologação! Consulte a aba 'MEUS EVENTOS'.")
                         st.rerun()
 
-        # TAB 3: MEUS EVENTOS / STANDBY (CONSULTA DE PEDIDOS SALVOS/FUTUROS)
+        # TAB 3: MEUS EVENTOS / STANDBY
         with tab_standby:
             st.subheader("📅 Seus Eventos Salvos e Solicitados")
             
