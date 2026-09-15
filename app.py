@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 
-# Configuração da página para navegação em celulares
+# Configuração da página
 st.set_page_config(
     page_title="Renascer Locações",
     page_icon="🎉",
@@ -14,59 +14,58 @@ st.set_page_config(
 if 'catalogo' not in st.session_state:
     st.session_state.catalogo = [
         # MOBILIÁRIO & MESAS
-        {"id": 1, "categoria": "Mobiliário & Mesas", "nome": "Jogo de Mesa com 4 Cadeiras de Plástico (Branca)", "preco": 14.00, "estoque": 50, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=300", "tags": ["rustico", "piscina", "infantil"]},
-        {"id": 2, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 6 Lugares (com tampão de madeira)", "preco": 18.00, "estoque": 20, "foto": "https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?w=300", "tags": ["rustico", "elegante"]},
-        {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 7 Lugares (com tampão de madeira)", "preco": 20.00, "estoque": 20, "foto": "https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?w=300", "tags": ["rustico", "elegante"]},
-        {"id": 4, "categoria": "Mobiliário & Mesas", "nome": "Aparador de Madeira (2,50m x 0,80m)", "preco": 25.00, "estoque": 5, "foto": "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300", "tags": ["rustico", "elegante"]},
-        {"id": 36, "categoria": "Mobiliário & Mesas", "nome": "Tampão de Madeira C/ Cavalete", "preco": 10.00, "estoque": 50, "foto": "https://images.unsplash.com/photo-1530018607912-eff2daa1bac4?w=300", "tags": ["rustico"]},
-        {"id": 34, "categoria": "Mobiliário & Mesas", "nome": "Cadeira de plástico branca", "preco": 3.00, "estoque": 20000, "foto": "https://images.unsplash.com/photo-1503602642458-232111445657?w=300", "tags": ["piscina", "infantil", "rustico"]},
-        {"id": 43, "categoria": "Mobiliário & Mesas", "nome": "Somente Mesa / Sem Cadeiras", "preco": 8.00, "estoque": 600, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=300", "tags": ["piscina", "rustico"]},
+        {"id": 1, "categoria": "Mobiliário & Mesas", "nome": "Jogo de Mesa com 4 Cadeiras de Plástico (Branca)", "preco": 14.00, "estoque": 50, "foto": "https://via.placeholder.com/300?text=Jogo+Mesa+Plastico", "tags": ["rustico", "piscina", "infantil"]},
+        {"id": 2, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 6 Lugares (com tampão de madeira)", "preco": 18.00, "estoque": 20, "foto": "https://via.placeholder.com/300?text=Mesa+Redonda+6L", "tags": ["rustico", "elegante"]},
+        {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 7 Lugares (com tampão de madeira)", "preco": 20.00, "estoque": 20, "foto": "https://via.placeholder.com/300?text=Mesa+Redonda+7L", "tags": ["rustico", "elegante"]},
+        {"id": 4, "categoria": "Mobiliário & Mesas", "nome": "Aparador de Madeira (2,50m x 0,80m)", "preco": 25.00, "estoque": 5, "foto": "https://via.placeholder.com/300?text=Aparador+Madeira", "tags": ["rustico", "elegante"]},
+        {"id": 36, "categoria": "Mobiliário & Mesas", "nome": "Tampão de Madeira C/ Cavalete", "preco": 10.00, "estoque": 50, "foto": "https://via.placeholder.com/300?text=Tampao+Cavalete", "tags": ["rustico"]},
+        {"id": 34, "categoria": "Mobiliário & Mesas", "nome": "Cadeira de plástico branca", "preco": 3.00, "estoque": 20000, "foto": "https://via.placeholder.com/300?text=Cadeira+Plastico", "tags": ["piscina", "infantil", "rustico"]},
+        {"id": 43, "categoria": "Mobiliário & Mesas", "nome": "Somente Mesa / Sem Cadeiras", "preco": 8.00, "estoque": 600, "foto": "https://via.placeholder.com/300?text=Somente+Mesa", "tags": ["piscina", "rustico"]},
 
         # LOUÇAS, TALHERES & COPOS
-        {"id": 8, "categoria": "Louças, Talheres & Copos", "nome": "Prato de jantar raso branco liso", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 22, "categoria": "Louças, Talheres & Copos", "nome": "Prato de jantar raso Branco Detalhado", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=300", "tags": ["elegante"]},
-        {"id": 28, "categoria": "Louças, Talheres & Copos", "nome": "Prato de Sobremesa Branco", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=300", "tags": ["elegante", "infantil"]},
-        {"id": 9, "categoria": "Louças, Talheres & Copos", "nome": "Copo Tradicional", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["piscina", "rustico"]},
-        {"id": 10, "categoria": "Louças, Talheres & Copos", "nome": "Taça para Água", "preco": 1.00, "estoque": 200, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 11, "categoria": "Louças, Talheres & Copos", "nome": "Taça Colorida", "preco": 1.50, "estoque": 150, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["piscina", "infantil"]},
-        {"id": 25, "categoria": "Louças, Talheres & Copos", "nome": "Taça Colorida Azul", "preco": 1.50, "estoque": 170, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["piscina", "infantil"]},
-        {"id": 26, "categoria": "Louças, Talheres & Copos", "nome": "Taça Colorida Dourada", "preco": 1.50, "estoque": 170, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["elegante"]},
-        {"id": 23, "categoria": "Louças, Talheres & Copos", "nome": "Taça Colorida Rosé", "preco": 1.50, "estoque": 170, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["elegante"]},
-        {"id": 27, "categoria": "Louças, Talheres & Copos", "nome": "Taça Colorida Transparente", "preco": 1.50, "estoque": 170, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 24, "categoria": "Louças, Talheres & Copos", "nome": "Taça Colorida Verde", "preco": 1.50, "estoque": 170, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["rustico", "piscina"]},
+        {"id": 8, "categoria": "Louças & Copos", "nome": "Prato de jantar raso branco liso", "preco": 0.80, "estoque": 300, "foto": "https://via.placeholder.com/300?text=Prato+Branco+Liso", "tags": ["elegante", "rustico"]},
+        {"id": 22, "categoria": "Louças & Copos", "nome": "Prato de jantar raso Branco Detalhado", "preco": 0.80, "estoque": 300, "foto": "https://via.placeholder.com/300?text=Prato+Branco+Detalhado", "tags": ["elegante"]},
+        {"id": 28, "categoria": "Louças & Copos", "nome": "Prato de Sobremesa Branco", "preco": 0.80, "estoque": 300, "foto": "https://via.placeholder.com/300?text=Prato+Sobremesa", "tags": ["elegante", "infantil"]},
+        {"id": 9, "categoria": "Louças & Copos", "nome": "Copo Tradicional", "preco": 0.80, "estoque": 300, "foto": "https://via.placeholder.com/300?text=Copo+Tradicional", "tags": ["piscina", "rustico"]},
+        {"id": 10, "categoria": "Louças & Copos", "nome": "Taça para Água", "preco": 1.00, "estoque": 200, "foto": "https://via.placeholder.com/300?text=Taca+Agua", "tags": ["elegante", "rustico"]},
+        {"id": 11, "categoria": "Louças & Copos", "nome": "Taça Colorida", "preco": 1.50, "estoque": 150, "foto": "https://via.placeholder.com/300?text=Taca+Colorida", "tags": ["piscina", "infantil"]},
+        {"id": 25, "categoria": "Louças & Copos", "nome": "Taça Colorida Azul", "preco": 1.50, "estoque": 170, "foto": "https://via.placeholder.com/300?text=Taca+Azul", "tags": ["piscina", "infantil"]},
+        {"id": 26, "categoria": "Louças & Copos", "nome": "Taça Colorida Dourada", "preco": 1.50, "estoque": 170, "foto": "https://via.placeholder.com/300?text=Taca+Dourada", "tags": ["elegante"]},
+        {"id": 23, "categoria": "Louças & Copos", "nome": "Taça Colorida Rosé", "preco": 1.50, "estoque": 170, "foto": "https://via.placeholder.com/300?text=Taca+Rose", "tags": ["elegante"]},
+        {"id": 27, "categoria": "Louças & Copos", "nome": "Taça Colorida Transparente", "preco": 1.50, "estoque": 170, "foto": "https://via.placeholder.com/300?text=Taca+Transparente", "tags": ["elegante", "rustico"]},
+        {"id": 24, "categoria": "Louças & Copos", "nome": "Taça Colorida Verde", "preco": 1.50, "estoque": 170, "foto": "https://via.placeholder.com/300?text=Taca+Verde", "tags": ["rustico", "piscina"]},
 
         # PRATARIA
-        {"id": 29, "categoria": "Prataria", "nome": "Garfo de jantar", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 30, "categoria": "Prataria", "nome": "Faca de jantar", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 32, "categoria": "Prataria", "nome": "Garfo de Sobremesa", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?w=300", "tags": ["elegante"]},
-        {"id": 35, "categoria": "Prataria", "nome": "Faca de sobremesa", "preco": 0.80, "estoque": 200, "foto": "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?w=300", "tags": ["elegante"]},
-        {"id": 31, "categoria": "Prataria", "nome": "Colher de sobremesa", "preco": 0.80, "estoque": 300, "foto": "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?w=300", "tags": ["elegante"]},
+        {"id": 29, "categoria": "Prataria & Talheres", "nome": "Garfo de jantar", "preco": 0.80, "estoque": 300, "foto": "https://via.placeholder.com/300?text=Garfo+Jantar", "tags": ["elegante", "rustico"]},
+        {"id": 30, "categoria": "Prataria & Talheres", "nome": "Faca de jantar", "preco": 0.80, "estoque": 300, "foto": "https://via.placeholder.com/300?text=Faca+Jantar", "tags": ["elegante", "rustico"]},
+        {"id": 32, "categoria": "Prataria & Talheres", "nome": "Garfo de Sobremesa", "preco": 0.80, "estoque": 300, "foto": "https://via.placeholder.com/300?text=Garfo+Sobremesa", "tags": ["elegante"]},
+        {"id": 35, "categoria": "Prataria & Talheres", "nome": "Faca de sobremesa", "preco": 0.80, "estoque": 200, "foto": "https://via.placeholder.com/300?text=Faca+Sobremesa", "tags": ["elegante"]},
+        {"id": 31, "categoria": "Prataria & Talheres", "nome": "Colher de sobremesa", "preco": 0.80, "estoque": 300, "foto": "https://via.placeholder.com/300?text=Colher+Sobremesa", "tags": ["elegante"]},
 
         # SERVIÇO & RICHAUDS
-        {"id": 12, "categoria": "Serviço & Richauds", "nome": "Richaud Redondo", "preco": 25.00, "estoque": 10, "foto": "https://images.unsplash.com/photo-1555244162-803834f70033?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 13, "categoria": "Serviço & Richauds", "nome": "Richaud Quadrado 9 Litros", "preco": 40.00, "estoque": 10, "foto": "https://images.unsplash.com/photo-1555244162-803834f70033?w=300", "tags": ["elegante"]},
-        {"id": 14, "categoria": "Serviço & Richauds", "nome": "Bandeja Oval Média", "preco": 10.00, "estoque": 15, "foto": "https://images.unsplash.com/photo-1555244162-803834f70033?w=300", "tags": ["elegante"]},
-        {"id": 15, "categoria": "Serviço & Richauds", "nome": "Bandeja Oval Grande", "preco": 15.00, "estoque": 15, "foto": "https://images.unsplash.com/photo-1555244162-803834f70033?w=300", "tags": ["elegante"]},
-        {"id": 16, "categoria": "Serviço & Richauds", "nome": "Bandeja para Garçom", "preco": 10.00, "estoque": 10, "foto": "https://images.unsplash.com/photo-1555244162-803834f70033?w=300", "tags": ["elegante"]},
-        {"id": 17, "categoria": "Serviço & Richauds", "nome": "Pegador / Colher para Arroz ou Feijão Tropeiro", "preco": 7.00, "estoque": 20, "foto": "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?w=300", "tags": ["rustico", "elegante"]},
-        {"id": 18, "categoria": "Serviço & Richauds", "nome": "Jarra em Inox", "preco": 10.00, "estoque": 15, "foto": "https://images.unsplash.com/photo-1555244162-803834f70033?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 19, "categoria": "Serviço & Richauds", "nome": "Lixeira Redonda 7 Litros", "preco": 25.00, "estoque": 10, "foto": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=300", "tags": ["piscina", "rustico"]},
-        {"id": 38, "categoria": "Serviço & Richauds", "nome": "Rishalds", "preco": 25.00, "estoque": 9, "foto": "https://images.unsplash.com/photo-1555244162-803834f70033?w=300", "tags": ["elegante"]},
+        {"id": 12, "categoria": "Serviço & Rechauds", "nome": "Richaud Redondo", "preco": 25.00, "estoque": 10, "foto": "https://via.placeholder.com/300?text=Rechaud+Redondo", "tags": ["elegante", "rustico"]},
+        {"id": 13, "categoria": "Serviço & Rechauds", "nome": "Richaud Quadrado 9 Litros", "preco": 40.00, "estoque": 10, "foto": "https://via.placeholder.com/300?text=Rechaud+Quadrado", "tags": ["elegante"]},
+        {"id": 14, "categoria": "Serviço & Rechauds", "nome": "Bandeja Oval Média", "preco": 10.00, "estoque": 15, "foto": "https://via.placeholder.com/300?text=Bandeja+Media", "tags": ["elegante"]},
+        {"id": 15, "categoria": "Serviço & Rechauds", "nome": "Bandeja Oval Grande", "preco": 15.00, "estoque": 15, "foto": "https://via.placeholder.com/300?text=Bandeja+Grande", "tags": ["elegante"]},
+        {"id": 16, "categoria": "Serviço & Rechauds", "nome": "Bandeja para Garçom", "preco": 10.00, "estoque": 10, "foto": "https://via.placeholder.com/300?text=Bandeja+Garcom", "tags": ["elegante"]},
+        {"id": 17, "categoria": "Serviço & Rechauds", "nome": "Pegador / Colher para Arroz ou Feijão Tropeiro", "preco": 7.00, "estoque": 20, "foto": "https://via.placeholder.com/300?text=Pegador+Servico", "tags": ["rustico", "elegante"]},
+        {"id": 18, "categoria": "Serviço & Rechauds", "nome": "Jarra em Inox", "preco": 10.00, "estoque": 15, "foto": "https://via.placeholder.com/300?text=Jarra+Inox", "tags": ["elegante", "rustico"]},
+        {"id": 19, "categoria": "Serviço & Rechauds", "nome": "Lixeira Redonda 7 Litros", "preco": 25.00, "estoque": 10, "foto": "https://via.placeholder.com/300?text=Lixeira+Inox", "tags": ["piscina", "rustico"]},
 
         # TOALHAS & ENXOVAL
-        {"id": 5, "categoria": "Toalhas & Enxoval", "nome": "Toalha Quadrada para 4 Lugares (1,50m x 1,50m)", "preco": 6.00, "estoque": 100, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=300", "tags": ["rustico", "piscina"]},
-        {"id": 6, "categoria": "Toalhas & Enxoval", "nome": "Toalha Redonda para 6 e 7 Lugares (Cor Lisa)", "preco": 12.00, "estoque": 80, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=300", "tags": ["elegante"]},
-        {"id": 7, "categoria": "Toalhas & Enxoval", "nome": "Toalha para Aparador", "preco": 25.00, "estoque": 10, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 37, "categoria": "Toalhas & Enxoval", "nome": "Toalha redonda Vermelho Adasmascado", "preco": 14.00, "estoque": 20, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=300", "tags": ["elegante"]},
-        {"id": 39, "categoria": "Toalhas & Enxoval", "nome": "Toalha Palha Adamascado Redondo", "preco": 14.00, "estoque": 40, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=300", "tags": ["elegante", "rustico"]},
-        {"id": 42, "categoria": "Toalhas & Enxoval", "nome": "Toalha Quadrada Verde Escuro", "preco": 6.00, "estoque": 50, "foto": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=300", "tags": ["piscina", "rustico"]},
-        {"id": 33, "categoria": "Toalhas & Enxoval", "nome": "Guardanapos", "preco": 1.00, "estoque": 1000, "foto": "https://images.unsplash.com/photo-1584345604476-8ec5e12e42dd?w=300", "tags": ["elegante"]},
+        {"id": 5, "categoria": "Toalhas & Linha de Mesa", "nome": "Toalha Quadrada para 4 Lugares (1,50m x 1,50m)", "preco": 6.00, "estoque": 100, "foto": "https://via.placeholder.com/300?text=Toalha+4+Lugares", "tags": ["rustico", "piscina"]},
+        {"id": 6, "categoria": "Toalhas & Linha de Mesa", "nome": "Toalha Redonda para 6 e 7 Lugares (Cor Lisa)", "preco": 12.00, "estoque": 80, "foto": "https://via.placeholder.com/300?text=Toalha+Redonda+Lisa", "tags": ["elegante"]},
+        {"id": 7, "categoria": "Toalhas & Linha de Mesa", "nome": "Toalha para Aparador", "preco": 25.00, "estoque": 10, "foto": "https://via.placeholder.com/300?text=Toalha+Aparador", "tags": ["elegante", "rustico"]},
+        {"id": 37, "categoria": "Toalhas & Linha de Mesa", "nome": "Toalha redonda Vermelho Adamascado", "preco": 14.00, "estoque": 20, "foto": "https://via.placeholder.com/300?text=Toalha+Vermelha", "tags": ["elegante"]},
+        {"id": 39, "categoria": "Toalhas & Linha de Mesa", "nome": "Toalha Palha Adamascado Redondo", "preco": 14.00, "estoque": 40, "foto": "https://via.placeholder.com/300?text=Toalha+Palha", "tags": ["elegante", "rustico"]},
+        {"id": 42, "categoria": "Toalhas & Linha de Mesa", "nome": "Toalha Quadrada Verde Escuro", "preco": 6.00, "estoque": 50, "foto": "https://via.placeholder.com/300?text=Toalha+Verde", "tags": ["piscina", "rustico"]},
+        {"id": 33, "categoria": "Toalhas & Linha de Mesa", "nome": "Guardanapos", "preco": 1.00, "estoque": 1000, "foto": "https://via.placeholder.com/300?text=Guardanapos", "tags": ["elegante"]},
 
-        # EQUIPAMENTOS
-        {"id": 20, "categoria": "Equipamento", "nome": "Freezer Horizontal Branca 2 Tampas (400 Litros)", "preco": 200.00, "estoque": 1, "foto": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=300", "tags": ["piscina", "rustico"]},
-        {"id": 21, "categoria": "Equipamento", "nome": "Freezer Horizontal Branca 2 Tampas (500 Litros)", "preco": 250.00, "estoque": 2, "foto": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=300", "tags": ["piscina", "rustico"]},
-        {"id": 40, "categoria": "Equipamento", "nome": "Baldinho de Acrílico", "preco": 15.00, "estoque": 4, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["piscina"]},
-        {"id": 41, "categoria": "Equipamento", "nome": "Champanheira", "preco": 30.00, "estoque": 3, "foto": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=300", "tags": ["elegante", "piscina"]}
+        # EQUIPAMENTOS & FREEZERS
+        {"id": 20, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal Branca 2 Tampas (400 Litros)", "preco": 200.00, "estoque": 1, "foto": "https://via.placeholder.com/300?text=Freezer+400L", "tags": ["piscina", "rustico"]},
+        {"id": 21, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal Branca 2 Tampas (500 Litros)", "preco": 250.00, "estoque": 2, "foto": "https://via.placeholder.com/300?text=Freezer+500L", "tags": ["piscina", "rustico"]},
+        {"id": 40, "categoria": "Equipamentos & Freezers", "nome": "Baldinho de Acrílico", "preco": 15.00, "estoque": 4, "foto": "https://via.placeholder.com/300?text=Baldinho+Acrilico", "tags": ["piscina"]},
+        {"id": 41, "categoria": "Equipamentos & Freezers", "nome": "Champanheira", "preco": 30.00, "estoque": 3, "foto": "https://via.placeholder.com/300?text=Champanheira", "tags": ["elegante", "piscina"]}
     ]
 
 if 'clientes' not in st.session_state:
@@ -76,7 +75,7 @@ if 'carrinho' not in st.session_state:
     st.session_state.carrinho = {}
 
 if 'promocao' not in st.session_state:
-    st.session_state.promocao = "🔥 Promoção do Mês: Desconto especial para eventos completos com louças e mesas!"
+    st.session_state.promocao = "⚡ Garanta 10% OFF fechando e confirmando o seu pedido hoje!"
 
 # --- MUDANÇA DINÂMICA DE APARÊNCIA E PLANO DE FUNDO VIA CSS ---
 def aplicar_tema_dinamico(ambiente):
@@ -84,25 +83,25 @@ def aplicar_tema_dinamico(ambiente):
         "Rústico": {
             "bg_url": "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80",
             "primary": "#8B4513",
-            "card_bg": "rgba(255, 248, 239, 0.92)",
+            "card_bg": "rgba(255, 248, 239, 0.94)",
             "text": "#3E2723"
         },
         "Casa com Piscina": {
             "bg_url": "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?auto=format&fit=crop&w=1200&q=80",
             "primary": "#008080",
-            "card_bg": "rgba(240, 253, 255, 0.92)",
+            "card_bg": "rgba(240, 253, 255, 0.94)",
             "text": "#004D40"
         },
         "Casamento / Elegante": {
             "bg_url": "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=1200&q=80",
             "primary": "#D4AF37",
-            "card_bg": "rgba(255, 255, 255, 0.94)",
+            "card_bg": "rgba(255, 255, 255, 0.95)",
             "text": "#2C2C2C"
         },
         "Festa Infantil": {
             "bg_url": "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=1200&q=80",
             "primary": "#FF69B4",
-            "card_bg": "rgba(255, 240, 245, 0.94)",
+            "card_bg": "rgba(255, 240, 245, 0.95)",
             "text": "#4A148C"
         }
     }
@@ -110,7 +109,7 @@ def aplicar_tema_dinamico(ambiente):
     t = temas.get(ambiente, {
         "bg_url": "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1200&q=80",
         "primary": "#1E3A8A",
-        "card_bg": "rgba(255, 255, 255, 0.92)",
+        "card_bg": "rgba(255, 255, 255, 0.94)",
         "text": "#1E293B"
     })
 
@@ -132,29 +131,12 @@ def aplicar_tema_dinamico(ambiente):
         padding: 8px 14px;
         margin-bottom: 8px;
     }}
-    button[kind="primary"] {{
-        background-color: {t['primary']} !important;
-        border: none !important;
-    }}
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
 
-# --- MÓDULO DE RECOMENDAÇÃO DE ACORDO COM O TEMA ---
-def recomendar_combinacao(ambiente_selecionado, carrinho_atual):
-    mapa_tags = {
-        "Rústico": "rustico",
-        "Casa com Piscina": "piscina",
-        "Casamento / Elegante": "elegante",
-        "Festa Infantil": "infantil"
-    }
-    tag_busca = mapa_tags.get(ambiente_selecionado, "rustico")
-    recomendacoes = [item for item in st.session_state.catalogo if tag_busca in item['tags'] and item['id'] not in carrinho_atual]
-    return recomendacoes
-
-# --- TÍTULO E NAVEGAÇÃO ---
+# --- NAVEGAÇÃO ---
 st.title("🎉 Renascer Locações")
-
 modo = st.sidebar.radio("Modo de Acesso", ["Área do Cliente", "Painel Administrativo"])
 
 # ==========================================
@@ -162,27 +144,26 @@ modo = st.sidebar.radio("Modo de Acesso", ["Área do Cliente", "Painel Administr
 # ==========================================
 if modo == "Área do Cliente":
     
-    # Aplica o tema visual conforme seleção anterior
     ambiente_salvo = st.session_state.get('cliente_atual', {}).get('ambiente', 'Outro')
     aplicar_tema_dinamico(ambiente_salvo)
 
     if st.session_state.promocao:
-        st.info(f"📢 **COMUNICADO:** {st.session_state.promocao}")
+        st.info(f"📢 {st.session_state.promocao}")
 
-    # ETAPA 1: Cadastro dos Dados Pessoais e Escolha do Estilo
-    st.header("1. Seus Dados & Estilo do Evento")
+    # 1. DADOS E TEMA DO EVENTO
+    st.header("1. Seus Dados & Tema do Evento")
     with st.form("form_cliente"):
-        nome = st.text_input("Nome Completo*")
-        telefone = st.text_input("Telefone / WhatsApp*")
-        endereco = st.text_input("Endereço / Localização do Evento*")
+        nome = st.text_input("Seu Nome Completo*")
+        telefone = st.text_input("WhatsApp / Telefone*")
+        endereco = st.text_input("Endereço do Evento*")
         data_evento = st.date_input("Data do Evento")
         
         ambiente = st.selectbox(
-            "Selecione o Estilo do Evento (Muda a aparência do App!):",
+            "Escolha o Tema do seu Evento (Muda o visual!):",
             ["Selecione...", "Rústico", "Casa com Piscina", "Casamento / Elegante", "Festa Infantil", "Outro"]
         )
         
-        btn_passo1 = st.form_submit_button("Avançar para Catálogo ➔")
+        btn_passo1 = st.form_submit_button("Confirmar Dados e Escolher Materiais ➔")
         
         if btn_passo1:
             if nome and telefone and endereco:
@@ -194,33 +175,31 @@ if modo == "Área do Cliente":
                     "ambiente": ambiente
                 }
                 st.session_state.clientes.append(st.session_state.cliente_atual)
-                st.success("Dados salvos e visual personalizado! Escolha os materiais abaixo.")
+                st.success("Dados Salvos com Sucesso!")
                 st.rerun()
             else:
-                st.error("Preencha todos os campos obrigatórios (*).")
+                st.error("Por favor, preencha nome, WhatsApp e endereço.")
 
-    # ETAPA 2: Escolha dos Produtos no Catálogo
-    st.header("2. Seleção de Materiais")
+    # 2. SELEÇÃO DE MATERIAIS
+    st.header("2. Escolha os Materiais")
     
-    # Recomendações da IA de acordo com o Ambiente
-    if 'cliente_atual' in st.session_state and st.session_state.cliente_atual.get('ambiente') != "Selecione...":
-        env = st.session_state.cliente_atual['ambiente']
-        sugestoes = recomendar_combinacao(env, st.session_state.carrinho)
-        if sugestoes:
-            st.markdown(f"💡 **Sugestões Especiais para o Estilo ({env}):**")
-            cols_sug = st.columns(min(len(sugestoes), 3))
-            for idx, item in enumerate(sugestoes[:3]):
-                with cols_sug[idx]:
-                    st.caption(f"**{item['nome']}**")
-                    st.write(f"R$ {item['preco']:.2f}")
+    # Campo de busca direta
+    busca = st.text_input("🔍 Digite o nome do item que procura (ex: Mesa, Taça, Rechaud, Freezer):")
+    
+    # Filtro simplificado por categoria
+    categorias = ["Todos os Materiais"] + list(dict.fromkeys([item['categoria'] for item in st.session_state.catalogo]))
+    cat_selecionada = st.selectbox("Ou filtre por Categoria:", categorias)
 
-    # Filtro de Categoria
-    categorias = ["Todas"] + list(set([item['categoria'] for item in st.session_state.catalogo]))
-    cat_selecionada = st.selectbox("Filtrar Categoria de Materiais:", categorias)
+    # Filtragem do Catálogo
+    produtos_exibidos = st.session_state.catalogo
 
-    # Lista de Produtos
-    produtos_exibidos = st.session_state.catalogo if cat_selecionada == "Todas" else [i for i in st.session_state.catalogo if i['categoria'] == cat_selecionada]
+    if cat_selecionada != "Todos os Materiais":
+        produtos_exibidos = [i for i in produtos_exibidos if i['categoria'] == cat_selecionada]
 
+    if busca:
+        produtos_exibidos = [i for i in produtos_exibidos if busca.lower() in i['nome'].lower()]
+
+    # Exibição dos itens
     for item in produtos_exibidos:
         with st.container():
             col1, col2 = st.columns([1, 2])
@@ -228,10 +207,9 @@ if modo == "Área do Cliente":
                 st.image(item['foto'], use_container_width=True)
             with col2:
                 st.subheader(item['nome'])
-                st.caption(f"Categoria: {item['categoria']} | Disponível: {item['estoque']}")
-                st.write(f"**Valor un.:** R$ {item['preco']:.2f}")
+                st.write(f"**Valor de locação:** R$ {item['preco']:.2f}")
                 qtd = st.number_input(
-                    f"Quantidade",
+                    f"Quantidade desejada:",
                     min_value=0,
                     max_value=item['estoque'],
                     value=st.session_state.carrinho.get(item['id'], 0),
@@ -243,93 +221,145 @@ if modo == "Área do Cliente":
                     del st.session_state.carrinho[item['id']]
             st.divider()
 
-    # ETAPA 3: Fechamento e Envio para WhatsApp Business
-    st.header("3. Orçamento Completo")
+    # 3. RESUMO E FECHAMENTO DO PEDIDO
+    st.header("3. Resumo & Fechamento")
     
     if st.session_state.carrinho:
-        total_geral = 0
-        resumo_texto = "📋 *NOVO PEDIDO DE ORÇAMENTO - RENASCER LOCAÇÕES*\n\n"
+        subtotal_geral = 0
+        
+        st.subheader("Itens Selecionados:")
+        for item_id, qtd in st.session_state.carrinho.items():
+            produto = next(i for i in st.session_state.catalogo if i['id'] == item_id)
+            sub = produto['preco'] * qtd
+            subtotal_geral += sub
+            st.write(f"• **{qtd}x {produto['nome']}** — R$ {sub:.2f}")
+
+        st.markdown(f"### Valor Subtotal: **R$ {subtotal_geral:.2f}**")
+
+        # Oferta de Fechamento Imediato (10% OFF)
+        st.markdown("---")
+        st.subheader("⚡ Condição de Fechamento:")
+        opcao_fechamento = st.radio(
+            "Selecione como prefere dar andamento:",
+            ["Apenas Guardar Orçamento (Valor Normal)", "Reservar e Confirmar Agora (Com 10% DE DESCONTO + PIX)"]
+        )
+
+        total_final = subtotal_geral
+        desconto_aplicado = False
+
+        if "10% DE DESCONTO" in opcao_fechamento:
+            desconto_aplicado = True
+            desconto = subtotal_geral * 0.10
+            total_final = subtotal_geral - desconto
+            
+            st.success(f"🎉 **Desconto de 10% Aplicado!** Valor Final: R$ {total_final:.2f} (Economia de R$ {desconto:.2f})")
+            
+            # QR Code PIX e Dados de Pagamento
+            st.markdown("### 📲 Dados para Pagamento via PIX:")
+            st.write("**Chave PIX (Telefone / WhatsApp):** `6298224034`")
+            st.write("**Favorecido:** Renascer Locações")
+            st.write(f"**Valor a Pagar:** R$ {total_final:.2f}")
+            
+            # Imagem QR Code Estática formatada
+            qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=Chave+PIX+6298224034+Valor+R$+{total_final:.2f}"
+            st.image(qr_url, caption="Escaneie o QR Code no app do seu banco para pagar com 10% OFF", width=220)
+
+        # Montagem do Texto de Envio para WhatsApp
+        resumo_texto = "📋 *PEDIDO DE LOCAÇÃO - RENASCER LOCAÇÕES*\n\n"
         
         if 'cliente_atual' in st.session_state:
             cli = st.session_state.cliente_atual
             resumo_texto += f"*Cliente:* {cli['nome']}\n"
-            resumo_texto += f"*Telefone:* {cli['telefone']}\n"
+            resumo_texto += f"*WhatsApp:* {cli['telefone']}\n"
             resumo_texto += f"*Endereço:* {cli['endereco']}\n"
-            resumo_texto += f"*Data:* {cli['data']}\n"
-            resumo_texto += f"*Estilo do Evento:* {cli['ambiente']}\n\n"
+            resumo_texto += f"*Data do Evento:* {cli['data']}\n"
+            resumo_texto += f"*Estilo:* {cli['ambiente']}\n\n"
         
-        resumo_texto += "*Materiais Selecionados:*\n"
-        
+        resumo_texto += "*Itens Escolhidos:*\n"
         for item_id, qtd in st.session_state.carrinho.items():
             produto = next(i for i in st.session_state.catalogo if i['id'] == item_id)
-            subtotal = produto['preco'] * qtd
-            total_geral += subtotal
-            resumo_texto += f"- {qtd}x {produto['nome']} (R$ {subtotal:.2f})\n"
-            st.write(f"• **{qtd}x {produto['nome']}** — R$ {subtotal:.2f}")
+            sub = produto['preco'] * qtd
+            resumo_texto += f"- {qtd}x {produto['nome']} (R$ {sub:.2f})\n"
 
-        resumo_texto += f"\n*VALOR TOTAL ESTIMADO:* R$ {total_geral:.2f}"
-        st.markdown(f"### **Total Geral: R$ {total_geral:.2f}**")
-
-        opcao_reserva = st.radio("Status do Pedido:", ["Reservar materiais para o evento", "Apenas guardar orçamento"])
-        resumo_texto += f"\n*Status:* {opcao_reserva}"
-
-        # NÚMERO DO SEU WHATSAPP BUSINESS:
-        numero_whatsapp = "556298224034"
+        resumo_texto += f"\n*Subtotal:* R$ {subtotal_geral:.2f}\n"
         
+        if desconto_aplicado:
+            resumo_texto += f"*Desconto de Fechamento (10%):* -R$ {(subtotal_geral * 0.10):.2f}\n"
+            resumo_texto += f"*VALOR TOTAL FINAL:* R$ {total_final:.2f}\n"
+            resumo_texto += "*Status:* RESERVADO COM DESCONTO (Aguardando/Comprovante PIX)\n"
+        else:
+            resumo_texto += f"*VALOR TOTAL:* R$ {total_final:.2f}\n"
+            resumo_texto += "*Status:* Apenas Orçamento Guardado\n"
+
+        # WhatsApp Link direto
+        numero_whatsapp = "556298224034"
         mensagem_encoded = urllib.parse.quote(resumo_texto)
-        link_whatsapp = f"https://wa.me/{numero_whatsapp}?text={mensagem_encoded}"
+        link_whatsapp = f"https://api.whatsapp.com/send?phone={numero_whatsapp}&text={mensagem_encoded}"
 
         st.markdown(f"""
             <a href="{link_whatsapp}" target="_blank">
-                <button style="background-color:#25D366; color:white; border:none; padding:16px; font-size:18px; border-radius:10px; width:100%; font-weight:bold; cursor:pointer;">
-                    📲 Enviar Orçamento para o WhatsApp Business
+                <button style="background-color:#25D366; color:white; border:none; padding:16px; font-size:18px; border-radius:10px; width:100%; font-weight:bold; cursor:pointer; margin-top:15px;">
+                    📲 Enviar Pedido para o WhatsApp Business
                 </button>
             </a>
         """, unsafe_allow_html=True)
     else:
-        st.info("Nenhum material selecionado no carrinho.")
+        st.info("Nenhum item selecionado. Escolha os materiais no catálogo acima.")
 
 # ==========================================
-# ⚙️ PAINEL ADMINISTRATIVO (SEU CONTROLE)
+# ⚙️ PAINEL ADMINISTRATIVO
 # ==========================================
 else:
-    st.header("⚙️ Painel de Controle - Renascer Locações")
+    st.header("⚙️ Painel do Proprietário - Renascer Locações")
     
-    senha = st.text_input("Senha de Acesso", type="password")
+    senha = st.text_input("Senha de Acesso ao Painel", type="password")
     if senha == "1234":
         
-        # 1. Gerenciador de Catálogo
-        st.subheader("📦 Materiais Cadastrados no Catálogo")
-        st.dataframe(pd.DataFrame(st.session_state.catalogo)[['id', 'categoria', 'nome', 'preco', 'estoque']])
-
-        # 2. Cadastro de Novos Itens
-        st.subheader("➕ Adicionar Novo Item")
-        with st.form("add_material"):
-            novo_nome = st.text_input("Nome do Material")
-            nova_cat = st.selectbox("Categoria", ["Mobiliário & Mesas", "Louças, Talheres & Copos", "Prataria", "Serviço & Richauds", "Toalhas & Enxoval", "Equipamento"])
-            novo_preco = st.number_input("Preço de Locação (R$)", min_value=0.0, step=0.50)
-            novo_estoque = st.number_input("Quantidade em Estoque", min_value=1, step=1)
-            nova_foto = st.text_input("URL da Foto", value="https://via.placeholder.com/150")
-            tags = st.multiselect("Tags de Estilo", ["rustico", "piscina", "elegante", "infantil"])
+        st.subheader("🖼️ Atualizar Fotos e Dados dos Produtos")
+        st.caption("Insira o link da foto real do seu material para substituir nos itens do catálogo.")
+        
+        df_cat = pd.DataFrame(st.session_state.catalogo)
+        item_editar_id = st.selectbox("Selecione o produto para alterar a foto:", df_cat['id'].tolist(), format_func=lambda x: next(i['nome'] for i in st.session_state.catalogo if i['id'] == x))
+        
+        item_obj = next(i for i in st.session_state.catalogo if i['id'] == item_editar_id)
+        
+        col_img1, col_img2 = st.columns([1, 2])
+        with col_img1:
+            st.image(item_obj['foto'], width=150, caption="Foto Atual")
+        with col_img2:
+            nova_url_foto = st.text_input("URL / Link da Nova Foto:", value=item_obj['foto'])
+            novo_preco_edit = st.number_input("Preço de Locação (R$):", value=float(item_obj['preco']), step=0.50)
+            novo_estoque_edit = st.number_input("Estoque Total:", value=int(item_obj['estoque']), step=1)
             
-            if st.form_submit_button("Salvar Item"):
-                novo_id = max([i['id'] for i in st.session_state.catalogo]) + 1 if st.session_state.catalogo else 1
-                st.session_state.catalogo.append({
-                    "id": novo_id, "categoria": nova_cat, "nome": novo_nome, "preco": novo_preco, "estoque": novo_estoque, "foto": nova_foto, "tags": tags
-                })
-                st.success(f"Item '{novo_nome}' adicionado com sucesso!")
+            if st.button("Salvar Alterações do Produto"):
+                item_obj['foto'] = nova_url_foto
+                item_obj['preco'] = novo_preco_edit
+                item_obj['estoque'] = novo_estoque_edit
+                st.success(f"Produto '{item_obj['nome']}' atualizado com sucesso!")
                 st.rerun()
 
-        # 3. Comunicado / Promoção
-        st.subheader("📢 Atualizar Mensagem Promocional")
-        nova_promo = st.text_area("Texto do Comunicado", value=st.session_state.promocao)
-        if st.button("Atualizar Comunicado"):
-            st.session_state.promocao = nova_promo
-            st.success("Mensagem atualizada com sucesso!")
+        st.divider()
 
-        # 4. Cadastro de Clientes
-        st.subheader("👥 Clientes Cadastrados nesta Sessão")
-        if st.session_state.clientes:
-            st.dataframe(pd.DataFrame(st.session_state.clientes))
-        else:
-            st.info("Nenhum cliente cadastrado ainda.")
+        # Adicionar Novo Produto
+        st.subheader("➕ Cadastrar Novo Produto")
+        with st.form("form_add_novo"):
+            nome_n = st.text_input("Nome do Material")
+            cat_n = st.selectbox("Categoria", ["Mobiliário & Mesas", "Louças & Copos", "Prataria & Talheres", "Serviço & Rechauds", "Toalhas & Linha de Mesa", "Equipamentos & Freezers"])
+            preco_n = st.number_input("Preço de Locação (R$)", min_value=0.0, step=0.50)
+            estoque_n = st.number_input("Estoque Inicial", min_value=1, step=1)
+            foto_n = st.text_input("Link da Foto (URL)", value="https://via.placeholder.com/300")
+            
+            if st.form_submit_button("Cadastrar Material"):
+                novo_id = max([i['id'] for i in st.session_state.catalogo]) + 1 if st.session_state.catalogo else 1
+                st.session_state.catalogo.append({
+                    "id": novo_id, "categoria": cat_n, "nome": nome_n, "preco": preco_n, "estoque": estoque_n, "foto": foto_n, "tags": ["rustico"]
+                })
+                st.success("Novo material adicionado ao catálogo!")
+                st.rerun()
+
+        st.divider()
+        st.subheader("📢 Mensagem Promocional")
+        nova_p = st.text_area("Texto do Comunicado (Topo da Página):", value=st.session_state.promocao)
+        if st.button("Salvar Mensagem"):
+            st.session_state.promocao = nova_p
+            st.success("Mensagem atualizada!")
