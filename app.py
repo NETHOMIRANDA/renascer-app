@@ -11,11 +11,38 @@ from reportlab.lib import colors
 
 # Configuração da página
 st.set_page_config(
-    page_title="Renascer Locações - Catálogo & Reservas",
+    page_title="Renascer Locações - Gestão de Reservas",
     page_icon="🎉",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Estilização CSS para fixar e destacar o cabeçalho de navegação (Tabs)
+st.markdown("""
+    <style>
+    div[data-baseweb="tab-list"] {
+        position: sticky;
+        top: 0;
+        background-color: #1E3A8A;
+        padding: 10px 15px;
+        border-radius: 8px;
+        z-index: 999;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.15);
+        margin-bottom: 25px;
+    }
+    div[data-baseweb="tab"] {
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        padding: 10px 20px !important;
+    }
+    div[aria-selected="true"] {
+        background-color: #FFFFFF !important;
+        color: #1E3A8A !important;
+        border-radius: 6px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- REPRODUTOR DE ÁUDIO E NOTIFICAÇÃO ---
 def tocar_som(tipo="click"):
@@ -34,16 +61,15 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
     story = []
     styles = getSampleStyleSheet()
     
-    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor('#1E3A8A'), spaceAfter=6)
-    sub_style = ParagraphStyle('SubStyle', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#475569'), spaceAfter=12)
+    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=16, textColor=colors.HexColor('#1E3A8A'), spaceAfter=4)
+    sub_style = ParagraphStyle('SubStyle', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#475569'), spaceAfter=10)
     normal_style = styles['Normal']
+    legal_style = ParagraphStyle('LegalStyle', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#334155'), spaceAfter=4)
     
-    # Cabeçalho Timbrado
     story.append(Paragraph("<b>RENASCER LOCAÇÕES E EVENTOS</b>", title_style))
     story.append(Paragraph("Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO<br/>Contato: (62) 3290-5515 | WhatsApp: (62) 98224-034", sub_style))
-    story.append(Spacer(1, 10))
+    story.append(Spacer(1, 8))
     
-    # Dados do Orçamento
     dados_cli = [
         [Paragraph(f"<b>Cliente:</b> {cliente['nome']}", normal_style), Paragraph(f"<b>Evento:</b> {evento}", normal_style)],
         [Paragraph(f"<b>Telefone:</b> {cliente['telefone']}", normal_style), Paragraph(f"<b>Data da Festa:</b> {data_evento}", normal_style)],
@@ -52,14 +78,13 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
     t_cli = Table(dados_cli, colWidths=[270, 270])
     t_cli.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#F1F5F9')),
-        ('PADDING', (0,0), (-1,-1), 6),
+        ('PADDING', (0,0), (-1,-1), 5),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
     ]))
     story.append(t_cli)
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 10))
     
-    # Tabela de Itens
     tabela_data = [["Item / Descrição", "Qtd", "Unitário (R$)", "Total (R$)"]]
     for item in itens:
         tabela_data.append([item['nome'], str(item['qtd']), f"{item['preco']:.2f}", f"{item['total']:.2f}"])
@@ -70,12 +95,11 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (1,0), (-1,-1), 'CENTER'),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
-        ('PADDING', (0,0), (-1,-1), 6),
+        ('PADDING', (0,0), (-1,-1), 5),
     ]))
     story.append(t_itens)
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 10))
     
-    # Resumo Financeiro
     totais_data = [
         ["Subtotal Materiais:", f"R$ {subtotal:.2f}"],
         ["Taxa de Frete / Logística:", f"R$ {frete:.2f}"],
@@ -86,11 +110,15 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
         ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
         ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
         ('TEXTCOLOR', (0,-1), (-1,-1), colors.HexColor('#1E3A8A')),
-        ('PADDING', (0,0), (-1,-1), 4),
+        ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(t_totais)
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("<i>* Orçamento sujeito a homologação de disponibilidade de estoque para a data solicitada.</i>", sub_style))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph("<b>TERMOS E CLÁUSULAS DE LOCAÇÃO</b>", ParagraphStyle('SubHeader', parent=styles['Heading3'], fontSize=10, textColor=colors.HexColor('#1E3A8A'))))
+    story.append(Paragraph("1. <b>Conferência no Ato:</b> O cliente declara conferir todos os materiais no recebimento. Eventuais quebras, trincas ou extravios apurados na devolução serão cobrados conforme tabela vigente.", legal_style))
+    story.append(Paragraph("2. <b>Condições de Devolução:</b> Copos, talheres e louças devem ser recolhidos e organizados nas caixas de transporte originais fornecidas pela Renascer Locações.", legal_style))
+    story.append(Paragraph("3. <b>Validação de Estoque:</b> Este orçamento constitui pré-reserva, estando condicionado à homologação de disponibilidade física de estoque para a data solicitada.", legal_style))
     
     doc.build(story)
     buffer.seek(0)
@@ -197,20 +225,18 @@ st.markdown("""
 # --- MODAL DO CARDÁPIO RESUMIDO DE MATERIAIS ---
 @st.dialog("📋 Cardápio Resumido de Materiais", width="large")
 def abrir_cardapio_resumido():
-    st.write("Clique no material desejado para ir direto para a escolha da quantidade e subitens:")
+    st.write("Selecione um material para direcionamento automático ao item:")
     st.markdown("---")
     
-    # Ordenar catálogo por ordem alfabética de nome
     catalogo_ordenado = sorted(st.session_state.catalogo, key=lambda x: x['nome'])
     
-    # Container rolável
     with st.container(height=420):
         for item in catalogo_ordenado:
             col_txt, col_btn = st.columns([3, 1])
             with col_txt:
                 st.markdown(f"**{item['nome']}**  \n<small style='color:gray;'>{item['categoria']} — R$ {item['preco']:.2f}</small>", unsafe_allow_html=True)
             with col_btn:
-                if st.button("Seleccionar ➔", key=f"btn_sel_cardapio_{item['id']}"):
+                if st.button("Selecionar ➔", key=f"btn_sel_cardapio_{item['id']}"):
                     st.session_state.termo_busca = item['nome']
                     tocar_som("click")
                     st.rerun()
@@ -224,43 +250,43 @@ modo = st.sidebar.radio("Ir para:", ["Área do Cliente", "Meu Perfil", "Painel A
 # 📱 TELA DE PERFIL DO CLIENTE
 # ==========================================
 if modo == "Meu Perfil":
-    st.title("👤 Meu Perfil & Endereços de Entrega")
+    st.title("👤 Perfil do Cliente & Endereços")
     
     if not st.session_state.cliente_perfil:
-        st.warning("Você ainda não realizou o cadastro inicial na Área do Cliente.")
+        st.warning("Nenhum cadastro localizado. Preencha os dados na página inicial do catálogo.")
     else:
         perf = st.session_state.cliente_perfil
         with st.form("form_edita_perfil"):
-            st.subheader("Editar Dados Pessoais")
+            st.subheader("Dados Cadastrais")
             e_nome = st.text_input("Nome Completo", value=perf['nome'])
-            e_tel = st.text_input("WhatsApp", value=perf['telefone'])
+            e_tel = st.text_input("WhatsApp / Telefone", value=perf['telefone'])
             e_email = st.text_input("E-mail", value=perf['email'])
             
-            if st.form_submit_button("Atualizar Perfil"):
+            if st.form_submit_button("Salvar Alterações"):
                 st.session_state.cliente_perfil['nome'] = e_nome
                 st.session_state.cliente_perfil['telefone'] = e_tel
                 st.session_state.cliente_perfil['email'] = e_email
                 tocar_som("sucesso")
-                st.success("Perfil atualizado com sucesso!")
+                st.success("Dados cadastrais atualizados.")
                 
         st.divider()
-        st.subheader("🏡 Endereços Cadastrados para Eventos")
+        st.subheader("Endereços Cadastrados")
         for idx, end in enumerate(st.session_state.enderecos_cadastrados):
-            st.info(f"**{end['rotulo']}**: {end['logradouro']} - CEP: {end['cep']}")
+            st.info(f"**{end['rotulo']}**: {end['logradouro']} — CEP: {end['cep']}")
             
         with st.form("form_novo_endereco"):
-            st.write("**Adicionar Novo Endereço:**")
-            rotulo = st.text_input("Identificação (ex: Minha Casa, Chácara, Salão de Festas)")
-            logradouro = st.text_input("Endereço Completo (Rua, Nº, Bairro, Cidade)")
-            cep = st.text_input("CEP do Local")
+            st.write("**Cadastrar Endereço Adicional:**")
+            rotulo = st.text_input("Identificação (ex: Salão, Chácara, Empresa)")
+            logradouro = st.text_input("Endereço Completo (Rua, Número, Bairro, Cidade)")
+            cep = st.text_input("CEP")
             
-            if st.form_submit_button("Cadastrar Endereço"):
+            if st.form_submit_button("Adicionar Endereço"):
                 if rotulo and logradouro and cep:
                     st.session_state.enderecos_cadastrados.append({
                         "rotulo": rotulo, "logradouro": logradouro, "cep": cep
                     })
                     tocar_som("sucesso")
-                    st.success("Novo endereço cadastrado com sucesso!")
+                    st.success("Endereço adicionado com sucesso.")
                     st.rerun()
 
 # ==========================================
@@ -268,43 +294,39 @@ if modo == "Meu Perfil":
 # ==========================================
 elif modo == "Área do Cliente":
     
-    # APRESENTAÇÃO INSTITUCIONAL COM LINK DE MAPA COMPACTO
+    # TELA DE CADASTRO INICIAL
     if not st.session_state.cliente_perfil:
         st.markdown("""
-        <div style="background-color: #f8f9fa; padding: 22px; border-radius: 12px; border-left: 6px solid #1E3A8A; margin-bottom: 20px;">
-            <h1 style="color: #1E3A8A; margin-bottom: 5px;">🎉 Renascer Locações</h1>
-            <h4 style="color: #475569; margin-top: 0px;">Tradição, Qualidade e Pontualidade para o seu Evento</h4>
-            <p style="font-size: 15px; color: #334155;">
-                Com <b>mais de 20 anos de atuação no mercado</b>, a <b>Renascer Locações</b> é referência na locação de pratos, copos, talheres, toalhas, rechauds e equipamentos para festas e eventos. Nosso compromisso é entregar tudo com a agilidade que a sua celebração merece.
-            </p>
-            <p style="font-size: 14px; color: #64748B; margin-bottom: 0px;">
-                📍 <b>Sede Própria:</b> Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO 
-                <a href="https://maps.google.com/?q=Rua+Presidente+Rodrigues+Alves+Quadra+30+Lote+06+Jardim+Presidente+Goiania" target="_blank" style="text-decoration:none; background-color:#1E3A8A; color:white; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:bold; margin-left:5px;">
+        <div style="background-color: #f8f9fa; padding: 18px; border-radius: 10px; border-left: 5px solid #1E3A8A; margin-bottom: 20px;">
+            <h2 style="color: #1E3A8A; margin-bottom: 2px;">Renascer Locações e Eventos</h2>
+            <p style="font-size: 14px; color: #475569; margin: 0px;">Acesso ao Catálogo e Sistema de Reservas de Materiais</p>
+            <p style="font-size: 13px; color: #64748B; margin-top: 8px; margin-bottom: 0px;">
+                📍 Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO 
+                <a href="https://maps.google.com/?q=Rua+Presidente+Rodrigues+Alves+Quadra+30+Lote+06+Jardim+Presidente+Goiania" target="_blank" style="text-decoration:none; background-color:#1E3A8A; color:white; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; margin-left:4px;">
                     🗺️ Ver no Mapa
                 </a>
-                <br/>📞 <b>Contato:</b> (62) 3290-5515 | 📱 <b>WhatsApp:</b> (62) 98224-034
+                <br/>📞 (62) 3290-5515 | WhatsApp: (62) 98224-034
             </p>
         </div>
         """, unsafe_allow_html=True)
 
-        st.subheader("👋 Seja Bem-Vindo(a)! Preencha seus dados para acessar o catálogo:")
+        st.subheader("Informe seus dados para iniciar o orçamento:")
         
         with st.form("form_cad_inicial"):
             c_nome = st.text_input("Nome Completo*")
             c_tel = st.text_input("WhatsApp / Telefone*")
             c_email = st.text_input("E-mail")
             st.markdown("---")
-            st.markdown("**Endereço Residencial:**")
-            c_end_rua = st.text_input("Endereço Completo (Rua, Nº, Bairro, Cidade)*")
-            c_end_cep = st.text_input("CEP Residencial*")
+            c_end_rua = st.text_input("Endereço Completo de Entrega*")
+            c_end_cep = st.text_input("CEP*")
             
-            if st.form_submit_button("Acessar Catálogo & Fazer Orçamento ➔"):
+            if st.form_submit_button("Acessar Catálogo de Materiais ➔"):
                 if c_nome and c_tel and c_end_rua and c_end_cep:
                     st.session_state.cliente_perfil = {
                         "nome": c_nome, "telefone": c_tel, "email": c_email
                     }
                     st.session_state.enderecos_cadastrados.append({
-                        "rotulo": "Minha Residência",
+                        "rotulo": "Endereço Principal",
                         "logradouro": c_end_rua,
                         "cep": c_end_cep
                     })
@@ -313,42 +335,44 @@ elif modo == "Área do Cliente":
                 else:
                     st.error("Por favor, preencha todos os campos obrigatórios (*).")
 
-    # CATÁLOGO, SELEÇÃO E ORÇAMENTO
+    # SEGUNDA TELA: NAVEGAÇÃO SUPERIOR DIRETA E CABEÇALHO FIXO
     else:
         cli = st.session_state.cliente_perfil
+        tem_orcamento_em_andamento = bool(st.session_state.carrinho_atual)
         
-        # CHECAGEM DE HOMOLOGAÇÃO PARA DISPARAR ÁUDIO E NOTIFICAÇÃO AO CLIENTE
+        # CUMPRIMENTO INFORMATIVO, SÓBRIO E DISCRETO NO TOPO
+        col_saudacao, col_status_carrinho = st.columns([3, 1])
+        with col_saudacao:
+            st.markdown(f"<p style='font-size:14px; color:#475569; margin:0px;'>Cliente: <b>{cli['nome']}</b> | Tel: {cli['telefone']}</p>", unsafe_allow_html=True)
+        with col_status_carrinho:
+            q_total_itens = sum(st.session_state.carrinho_atual.values())
+            st.markdown(f"<p style='font-size:14px; color:#1E3A8A; font-weight:bold; text-align:right; margin:0px;'>🛒 Itens Selecionados: {q_total_itens}</p>", unsafe_allow_html=True)
+
+        # CHECAGEM DE NOTIFICAÇÃO DE HOMOLOGAÇÃO
         pedidos_homologados_recentes = [p for p in st.session_state.pedidos_standby if p.get('status') == 'Homologado (Disponibilidade Confirmada)' and p.get('alerta_tocado') != True]
         if pedidos_homologados_recentes:
             for p_h in pedidos_homologados_recentes:
-                st.success(f"🔔 **BOAS NOTÍCIAS!** O seu pedido para o evento **'{p_h['evento']}'** foi homologado e confirmado pela equipe da Renascer Locações!")
+                st.success(f"🔔 O pedido referente ao evento **'{p_h['evento']}'** foi homologado e confirmado com sucesso pela Renascer Locações.")
                 tocar_som("homologado")
                 p_h['alerta_tocado'] = True
 
-        col_tit, col_novo = st.columns([3, 1])
-        with col_tit:
-            st.title(f"Olá, {cli['nome']}!")
-        with col_novo:
-            if st.button("➕ Iniciar Novo Pedido"):
-                st.session_state.carrinho_atual = {}
-                st.session_state.toalhas_vinculadas = {}
-                st.session_state.pedido_edicao_id = None
-                st.session_state.termo_busca = ""
-                tocar_som("click")
-                st.rerun()
-
         if st.session_state.pedido_edicao_id:
-            st.warning(f"📝 **Você está editando o Pedido ID #{st.session_state.pedido_edicao_id}**. Ao concluir, as alterações serão salvas diretamente nele.")
+            st.warning(f"📝 Você está alterando o Pedido ID #{st.session_state.pedido_edicao_id}. As modificações serão consolidadas ao salvar.")
 
-        tab_catalogo, tab_carrinho, tab_standby = st.tabs(["🛒 Catálogo de Materiais", "📋 Finalizar Orçamento & Frete", "📅 Eventos & Histórico"])
+        # CABEÇALHO SUPERIOR FIXO E DESTACADO PARA NAVEGAÇÃO
+        tab_catalogo, tab_carrinho, tab_standby = st.tabs([
+            "🛒 CATÁLOGO DE MATERIAIS", 
+            "📋 FINALIZAR ORÇAMENTO & FRETE", 
+            "📅 EVENTOS & HISTÓRICO"
+        ])
         
-        # TAB 1: CATÁLOGO COM BUSCA INTELIGENTE E CARDÁPIO RESUMIDO
+        # TAB 1: CATÁLOGO DE MATERIAIS
         with tab_catalogo:
-            st.subheader("Qual material você procura?")
+            st.subheader("Seleção de Materiais")
             
             col_busca, col_cardapio = st.columns([3, 1])
             with col_busca:
-                input_busca = st.text_input("🔍 Digite o nome do item (ex: mesa, frizzer, pano, copo):", value=st.session_state.termo_busca, key="input_busca_campo")
+                input_busca = st.text_input("🔍 Digite o nome do item:", value=st.session_state.termo_busca, key="input_busca_campo")
                 st.session_state.termo_busca = input_busca
             with col_cardapio:
                 st.write("&#160;")
@@ -358,26 +382,26 @@ elif modo == "Área do Cliente":
             itens_exibidos = buscar_materiais_inteligente(st.session_state.termo_busca, st.session_state.catalogo)
             
             if not itens_exibidos:
-                st.warning("Nenhum material encontrado exatamente com este termo. Clique no botão **📋 Cardápio Resumido** ao lado para ver a lista completa de materiais.")
+                st.warning("Item não localizado na pesquisa. Clique em '📋 Cardápio Resumido' para consultar a relação completa de materiais.")
             else:
                 for item in itens_exibidos:
                     with st.container():
                         col_img, col_det, col_qtd = st.columns([1, 2, 1])
                         with col_img:
-                            st.image(item['foto'], width=130)
+                            st.image(item['foto'], width=120)
                         with col_det:
-                            st.markdown(f"### {item['nome']}")
+                            st.markdown(f"#### {item['nome']}")
                             st.caption(f"Categoria: {item['categoria']}")
-                            st.write(f"Preço Unitário: **R$ {item['preco']:.2f}**")
+                            st.write(f"Valor unitário: **R$ {item['preco']:.2f}**")
                             
                             if item.get("tipo_mesa") in ["quadrada", "redonda"]:
                                 st.markdown("---")
                                 tipo_m = item.get("tipo_mesa")
-                                quer_toalha = st.checkbox(f"Deseja incluir Toalha {tipo_m.capitalize()} para esta mesa?", key=f"chk_toalha_{item['id']}")
+                                quer_toalha = st.checkbox(f"Incluir Toalha {tipo_m.capitalize()} para esta mesa?", key=f"chk_toalha_{item['id']}")
                                 
                                 if quer_toalha:
                                     cor_toalha = st.selectbox(
-                                        "Escolha a cor da toalha:",
+                                        "Cor da toalha:",
                                         ["Branca Clássica", "Vermelho Adamascado", "Palha Adamascado", "Verde Escuro", "Preta", "Azul"],
                                         key=f"cor_toalha_{item['id']}"
                                     )
@@ -403,104 +427,126 @@ elif modo == "Área do Cliente":
                                 tocar_som("click")
                     st.divider()
 
-        # TAB 2: DETALHES DO EVENTO, CÁLCULO DE FRETE E FLUXO DE PAGAMENTO
+        # TAB 2: FINALIZAR ORÇAMENTO (COM ESPELHO DO ORÇAMENTO E CLÁUSULAS DE ENTREGA)
         with tab_carrinho:
-            st.subheader("📋 Detalhes da Entrega e Cálculo de Frete")
+            st.subheader("📋 Resumo Formal do Orçamento e Cláusulas")
             
             if not st.session_state.carrinho_atual:
-                st.info("Seu carrinho está vazio. Adicione materiais na aba Catálogo para continuar.")
+                st.info("Nenhum material selecionado. Navegue pela aba 'Catálogo de Materiais' para compor o orçamento.")
             else:
-                # 1. Seleção do Local da Festa
-                st.markdown("#### 1. Selecione o Local do Evento")
-                opcoes_end = [f"{e['rotulo']} ({e['logradouro']} - CEP: {e['cep']})" for e in st.session_state.enderecos_cadastrados] + ["Outro Endereço (Cadastrar Agora)"]
-                sel_end = st.selectbox("Escolha onde será a festa:", opcoes_end)
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    opcoes_end = [f"{e['rotulo']} ({e['logradouro']} - CEP: {e['cep']})" for e in st.session_state.enderecos_cadastrados] + ["Outro Endereço"]
+                    sel_end = st.selectbox("Local do Evento:", opcoes_end)
+                    
+                    if sel_end == "Outro Endereço":
+                        end_rua_festa = st.text_input("Endereço Completo da Festa")
+                        end_cep_festa = st.text_input("CEP da Festa")
+                    else:
+                        idx_end = opcoes_end.index(sel_end)
+                        end_rua_festa = st.session_state.enderecos_cadastrados[idx_end]['logradouro']
+                        end_cep_festa = st.session_state.enderecos_cadastrados[idx_end]['cep']
+                        
+                with col_e2:
+                    data_festa = st.date_input("Data do Evento:")
                 
-                if sel_end == "Outro Endereço (Cadastrar Agora)":
-                    col_n1, col_n2 = st.columns(2)
-                    with col_n1:
-                        end_rua_festa = st.text_input("Endereço Completo do Evento")
-                    with col_n2:
-                        end_cep_festa = st.text_input("CEP do Evento")
-                else:
-                    idx_end = opcoes_end.index(sel_end)
-                    end_rua_festa = st.session_state.enderecos_cadastrados[idx_end]['logradouro']
-                    end_cep_festa = st.session_state.enderecos_cadastrados[idx_end]['cep']
-
-                st.write(f"📍 **Endereço da Festa Confirmado:** {end_rua_festa} | CEP: {end_cep_festa}")
-                
-                # 2. Cálculo do Frete Integrado
                 dados_frete = calcular_distancia_cep(end_cep_festa)
-                val_frete = 0.0
-                if dados_frete:
-                    val_frete = dados_frete['valor_frete']
-                    st.success(f"🚚 **Frete Calculado Integrado:** Distância da Renascer Locações: {dados_frete['km']} km ➔ **Valor do Frete: R$ {val_frete:.2f}**")
-                else:
-                    st.warning("Informe um CEP válido para calcular e somar o valor do frete automático ao orçamento.")
+                val_frete = dados_frete['valor_frete'] if dados_frete else 0.0
 
-                # 3. Data do Evento
-                data_festa = st.date_input("Data do Evento:")
-
-                # 4. Resumo de Itens e Valores
                 st.markdown("---")
-                st.markdown("#### 2. Resumo do Orçamento")
+                
+                st.markdown("""
+                    <div style="background-color: #FFFFFF; border: 1px solid #CBD5E1; padding: 20px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,0.05);">
+                        <h3 style="color:#1E3A8A; margin-top:0px; border-bottom: 2px solid #1E3A8A; padding-bottom: 5px;">
+                            📄 ESPELHO DO ORÇAMENTO — RENASCER LOCAÇÕES
+                        </h3>
+                """, unsafe_allow_html=True)
+                
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    st.write(f"**Cliente:** {cli['nome']}")
+                    st.write(f"**Telefone:** {cli['telefone']}")
+                with col_d2:
+                    st.write(f"**Data da Entrega:** {data_festa}")
+                    st.write(f"**Endereço:** {end_rua_festa}")
+                
+                st.markdown("##### Relação de Materiais Reservados:")
                 
                 subtotal_materiais = 0.0
                 lista_pdf_itens = []
+                
+                tabela_itens_html = "<table style='width:100%; border-collapse: collapse; margin-top:10px; font-size:14px;'>"
+                tabela_itens_html += "<tr style='background-color:#F1F5F9; border-bottom: 2px solid #CBD5E1;'><th style='text-align:left; padding:8px;'>Item</th><th style='text-align:center;'>Qtd</th><th style='text-align:right;'>Unitário</th><th style='text-align:right;'>Total</th></tr>"
                 
                 for item_id, q in st.session_state.carrinho_atual.items():
                     prod = next(i for i in st.session_state.catalogo if i['id'] == item_id)
                     tot_prod = prod['preco'] * q
                     subtotal_materiais += tot_prod
-                    st.write(f"• **{q}x {prod['nome']}** — R$ {tot_prod:.2f}")
                     lista_pdf_itens.append({"nome": prod['nome'], "qtd": q, "preco": prod['preco'], "total": tot_prod})
+                    
+                    tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0;'><td style='padding:8px;'>{prod['nome']}</td><td style='text-align:center;'>{q}</td><td style='text-align:right;'>R$ {prod['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_prod:.2f}</td></tr>"
                     
                     if item_id in st.session_state.toalhas_vinculadas:
                         t_info = st.session_state.toalhas_vinculadas[item_id]
                         tot_toalha = t_info['preco'] * q
                         subtotal_materiais += tot_toalha
                         nome_t = f"Toalha {t_info['tipo'].capitalize()} ({t_info['cor']})"
-                        st.write(f"  └ ➕ *{q}x {nome_t}* — R$ {tot_toalha:.2f}")
                         lista_pdf_itens.append({"nome": nome_t, "qtd": q, "preco": t_info['preco'], "total": tot_toalha})
+                        tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0; color:#475569;'><td style='padding:8px; padding-left:25px;'>└ ➕ {nome_t}</td><td style='text-align:center;'>{q}</td><td style='text-align:right;'>R$ {t_info['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_toalha:.2f}</td></tr>"
 
+                tabela_itens_html += "</table>"
+                st.markdown(tabela_itens_html, unsafe_allow_html=True)
+                
                 valor_total_bruto = subtotal_materiais + val_frete
-                st.markdown(f"Subtotal Materiais: **R$ {subtotal_materiais:.2f}**")
-                st.markdown(f"Valor do Frete Computado: **R$ {val_frete:.2f}**")
-                st.markdown(f"### Valor Total do Orçamento: **R$ {valor_total_bruto:.2f}**")
+                
+                st.markdown("---")
+                col_t1, col_t2 = st.columns([2, 2])
+                with col_t2:
+                    st.write(f"Subtotal Materiais: **R$ {subtotal_materiais:.2f}**")
+                    st.write(f"Taxa de Frete/Logística: **R$ {val_frete:.2f}**")
+                    st.markdown(f"<h3 style='color:#1E3A8A; margin:0px;'>Total: R$ {valor_total_bruto:.2f}</h3>", unsafe_allow_html=True)
 
-                # GERAR E BAIXAR PDF FORMAL
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                st.markdown("---")
+                st.markdown("#### 📜 Cláusulas do Contrato de Locação e Devolução")
+                with st.expander("Clique para ler as obrigações de entrega e devolução do cliente", expanded=True):
+                    st.markdown("""
+                    * **1. Conferência do Material:** Todos os itens fornecidos (louças, copos, talheres, rechauds e mobiliário) são conferidos no ato da entrega. O cliente compromete-se a conferir no recebimento.
+                    * **2. Indenização por Avarias:** Peças quebradas, trincadas ou não devolvidas serão cobradas ao término do evento conforme a tabela de reposição vigente.
+                    * **3. Organização para Devolução:** Copos, pratos e talheres devem estar recolhidos e organizados nas caixas e embalagens plásticas originais fornecidas pela Renascer Locações.
+                    * **4. Validação de Estoque:** A conclusão do orçamento no aplicativo constitui uma reserva prévia, ficando a efetivação final sujeita à homologação de disponibilidade no estoque da empresa para a data informada.
+                    """)
+
                 pdf_bytes = gerar_pdf_orcamento(
                     cli, "Orçamento Formal", str(data_festa), end_rua_festa,
                     lista_pdf_itens, subtotal_materiais, val_frete, valor_total_bruto, "Rascunho de Orçamento"
                 )
                 st.download_button(
-                    label="📄 Baixar Orçamento Formal em PDF",
+                    label="📄 Baixar Cópia Formal deste Orçamento em PDF",
                     data=pdf_bytes,
                     file_name=f"Orcamento_Renascer_{cli['nome'].replace(' ', '_')}.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    use_container_width=True
                 )
 
-                # RECADOS DE ESTOQUE E HOMOLOGAÇÃO
-                st.warning("⚠️ **AVISO IMPORTANTE:** Caso deixe a confirmação do seu pedido para cima da hora, corre-se o risco do material desejado não ter mais disponibilidade em estoque para a data do evento.")
-                st.info("ℹ️ **Processo de Confirmação:** Ao efetivar o pedido, nossa equipe fará a **homologação e validação formal de estoque** para a data informada. Você receberá uma notificação assim que o pedido for aceito.")
-
-                # 5. Opções de Fechamento / Standby
                 st.markdown("---")
-                st.markdown("#### 3. Conclusão do Pedido")
+                st.markdown("#### Conclusão da Reserva")
                 
                 opcao_fechar = st.radio(
-                    "Como prefere dar andamento a este pedido?",
-                    ["Guardar Pedido em Standby para Data Futura", "Efetivar Pedido e Ir para Pagamento"]
+                    "Selecione o procedimento para este pedido:",
+                    ["Salvar Pedido em Standby para Data Futura", "Efetivar Pedido e Solicitar Homologação de Estoque"]
                 )
                 
-                nome_identificador = st.text_input("Identificação do Evento (ex: Aniversário da Sofia, Churrasco da Firma):")
+                nome_identificador = st.text_input("Identificação do Evento (ex: Aniversário, Casamento, Almoço de Família):")
 
-                if st.button("💾 Finalizar e Confirmar Pedido"):
+                # CONCLUIR/ARQUIVAR PEDIDO: LIBERA SESSÃO PARA NOVO ORÇAMENTO
+                if st.button("💾 Gravar e Finalizar Orçamento", use_container_width=True):
                     if not nome_identificador:
-                        st.error("Por favor, digite um nome para identificar a sua festa.")
+                        st.error("Digite o nome identificador do evento.")
                     else:
-                        status_final = "Standby (Aguardando Definição)" if opcao_fechar == "Guardar Pedido em Standby para Data Futura" else "Aguardando Homologação da Renascer"
+                        status_final = "Standby (Aguardando Definição)" if opcao_fechar == "Salvar Pedido em Standby para Data Futura" else "Aguardando Homologação da Renascer"
                         
-                        # Se for edição, atualiza
                         if st.session_state.pedido_edicao_id:
                             for p in st.session_state.pedidos_standby:
                                 if p['id'] == st.session_state.pedido_edicao_id:
@@ -533,56 +579,71 @@ elif modo == "Área do Cliente":
                             }
                             st.session_state.pedidos_standby.append(novo_stb)
 
+                        # Limpeza para permitir novos pedidos
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
                         st.session_state.termo_busca = ""
                         tocar_som("sucesso")
-                        st.success("Pedido gravado com sucesso! Redirecionando...")
+                        st.success("Orçamento gravado no sistema e concluído. Agora você pode realizar um novo pedido se desejar.")
                         st.rerun()
 
-                # SE FOR EFETIVAR, EXIBE ÁREA DE PAGAMENTO PIX
-                if opcao_fechar == "Efetivar Pedido e Ir para Pagamento":
+                if opcao_fechar == "Efetivar Pedido e Solicitar Homologação de Estoque":
                     st.markdown("---")
-                    st.subheader("💳 Dados para Pagamento via PIX")
+                    st.subheader("💳 Dados para Pagamento PIX")
                     
                     col_pix1, col_pix2 = st.columns([1, 2])
                     with col_pix1:
-                        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PIX+Renascer+Locacoes+Chave+6298224034+Valor+{valor_total_bruto:.2f}"
-                        st.image(qr_url, caption="Escaneie para Pagar via PIX", width=200)
+                        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PIX+Renascer+Locacoes+Chave+6298224034+Valor+{valor_total_bruto:.2f}"
+                        st.image(qr_url, caption="QR Code PIX", width=180)
                     with col_pix2:
                         st.write("**Chave PIX (Telefone):** `6298224034`")
                         st.write("**Favorecido:** Valdir Ferreira Miranda / Renascer Locações")[cite: 1]
-                        st.write(f"**Valor do Pedido (com frete):** R$ {valor_total_bruto:.2f}")
+                        st.write(f"**Valor a Pagar:** R$ {valor_total_bruto:.2f}")
                         
                         txt_whatsapp = f"📋 *NOVO PEDIDO EFETIVADO - RENASCER LOCAÇÕES*\n"
                         txt_whatsapp += f"*Cliente:* {cli['nome']}\n"
                         txt_whatsapp += f"*Evento:* {nome_identificador}\n"
                         txt_whatsapp += f"*Data:* {data_festa}\n"
-                        txt_whatsapp += f"*Endereço:* {end_rua_festa}\n"
                         txt_whatsapp += f"*VALOR TOTAL:* R$ {valor_total_bruto:.2f}\n"
-                        txt_whatsapp += f"Solicito a homologação e confirmação de disponibilidade do material."
+                        txt_whatsapp += f"Solicito homologação e verificação de disponibilidade do material."
                         
                         link_wa_fechar = f"https://api.whatsapp.com/send?phone=556298224034&text={urllib.parse.quote(txt_whatsapp)}"
                         
                         st.markdown(f"""
                             <a href="{link_wa_fechar}" target="_blank">
-                                <button style="background-color:#25D366; color:white; border:none; padding:15px; font-size:16px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                                    📲 Enviar Pedido para Homologação no WhatsApp
+                                <button style="background-color:#25D366; color:white; border:none; padding:12px; font-size:15px; border-radius:6px; font-weight:bold; cursor:pointer;">
+                                    📲 Enviar Pedido para Homologação via WhatsApp
                                 </button>
                             </a>
                         """, unsafe_allow_html=True)
 
-        # TAB 3: STANDBY & REABERTURA DE PEDIDOS
+        # TAB 3: STANDBY & HISTÓRICO
         with tab_standby:
-            st.subheader("📅 Seus Pedidos & Orçamentos Guardados")
+            st.subheader("📅 Eventos Cadastrados & Histórico")
+            
+            # REGRA DE BLOQUEIO / EXIBIÇÃO DO BOTÃO "NOVO PEDIDO"
+            if tem_orcamento_em_andamento:
+                st.warning("⚠️ Você possui um orçamento em andamento no carrinho. Finalize ou arquive o orçamento atual para poder criar um novo pedido ou reabrir registros anteriores.")
+            else:
+                # O botão só aparece se NÃO houver orçamento aberto
+                if st.button("➕ Iniciar Novo Orçamento Zerado", use_container_width=True):
+                    st.session_state.carrinho_atual = {}
+                    st.session_state.toalhas_vinculadas = {}
+                    st.session_state.pedido_edicao_id = None
+                    tocar_som("click")
+                    st.success("Novo orçamento iniciado!")
+                    st.rerun()
+
+            st.divider()
+
             if not st.session_state.pedidos_standby:
-                st.info("Nenhum pedido ou orçamento encontrado.")
+                st.info("Nenhum pedido ou orçamento registrado.")
             else:
                 for p in st.session_state.pedidos_standby:
                     with st.expander(f"🎉 {p['evento']} — Data: {p['data']} | Status: {p['status']}"):
-                        st.write(f"**Endereço de Entrega:** {p['endereco']}")
+                        st.write(f"**Endereço:** {p['endereco']}")
                         st.write(f"**Subtotal Materiais:** R$ {p['subtotal']:.2f}")
-                        st.write(f"**Valor do Frete:** R$ {p['frete']:.2f}")
+                        st.write(f"**Taxa de Frete:** R$ {p['frete']:.2f}")
                         st.write(f"**Valor Total:** R$ {p['total']:.2f}")
                         
                         pdf_p = gerar_pdf_orcamento(
@@ -590,38 +651,40 @@ elif modo == "Área do Cliente":
                             p['itens_detalhe'], p['subtotal'], p['frete'], p['total'], p['status']
                         )
                         st.download_button(
-                            label="📄 Baixar PDF deste Pedido",
+                            label="📄 Baixar PDF do Orçamento",
                             data=pdf_p,
                             file_name=f"Orcamento_{p['id']}_{p['evento'].replace(' ', '_')}.pdf",
                             mime="application/pdf",
                             key=f"dl_pdf_{p['id']}"
                         )
                         
-                        if st.button(f"✏️ Reabrir e Alterar este Pedido (ID #{p['id']})", key=f"reabrir_{p['id']}"):
-                            st.session_state.carrinho_atual = dict(p['itens'])
-                            st.session_state.toalhas_vinculadas = dict(p.get('toalhas', {}))
-                            st.session_state.pedido_edicao_id = p['id']
-                            tocar_som("click")
-                            st.success("Pedido reaberto com sucesso! Vá para a aba 'Catálogo de Materiais' ou 'Finalizar Orçamento' para ajustar o pedido.")
-                            st.rerun()
+                        # O BOTÃO DE REABRIR SÓ É EXIBIDO SE O CARRINHO ESTIVER LIVRE
+                        if not tem_orcamento_em_andamento:
+                            if st.button(f"✏️ Reabrir e Alterar este Pedido (ID #{p['id']})", key=f"reabrir_{p['id']}"):
+                                st.session_state.carrinho_atual = dict(p['itens'])
+                                st.session_state.toalhas_vinculadas = dict(p.get('toalhas', {}))
+                                st.session_state.pedido_edicao_id = p['id']
+                                tocar_som("click")
+                                st.success("Pedido reaberto para edição.")
+                                st.rerun()
 
 # ==========================================
-# ⚙️ PAINEL ADMINISTRATIVO (HOMOLOGAÇÃO)
+# ⚙️ PAINEL ADMINISTRATIVO
 # ==========================================
 else:
-    st.header("⚙️ Painel da Renascer Locações — Homologação de Estoque")
-    senha = st.text_input("Senha do Painel", type="password")
+    st.header("⚙️ Painel da Renascer Locações — Validação de Estoque")
+    senha = st.text_input("Senha de Acesso", type="password")
     
     if senha == "1234":
-        st.subheader("📊 Pedidos para Validação & Homologação de Disponibilidade")
+        st.subheader("📊 Pedidos para Homologação")
         if not st.session_state.pedidos_standby:
-            st.info("Nenhum pedido cadastrado no momento.")
+            st.info("Nenhum pedido pendente.")
         else:
             for p in st.session_state.pedidos_standby:
                 with st.container():
                     st.markdown(f"### Pedido #{p['id']} — {p['evento']} ({p['cliente']['nome']})")
                     st.write(f"**Data da Festa:** {p['data']} | **Telefone:** {p['cliente']['telefone']}")
-                    st.write(f"**Local:** {p['endereco']}")
+                    st.write(f"**Endereço:** {p['endereco']}")
                     st.write(f"**Valor Total:** R$ {p['total']:.2f} (Frete: R$ {p['frete']:.2f})")
                     st.write(f"**Status Atual:** `{p['status']}`")
                     
@@ -631,11 +694,11 @@ else:
                             p['status'] = "Homologado (Disponibilidade Confirmada)"
                             p['alerta_tocado'] = False
                             tocar_som("sucesso")
-                            st.success("Pedido Homologado! O cliente será notificado no aplicativo.")
+                            st.success("Pedido Homologado.")
                             st.rerun()
                     with col_h2:
-                        if st.button(f"❌ Indisponível para esta Data (ID #{p['id']})", key=f"btn_rec_{p['id']}"):
+                        if st.button(f"❌ Indisponível para a Data (ID #{p['id']})", key=f"btn_rec_{p['id']}"):
                             p['status'] = "Indisponível (Sem Estoque para a Data)"
-                            st.error("Status atualizado para indisponível.")
+                            st.error("Status alterado para indisponível.")
                             st.rerun()
                     st.divider()
