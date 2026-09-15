@@ -4,6 +4,7 @@ import urllib.parse
 from datetime import datetime
 from difflib import SequenceMatcher
 import io
+import requests
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -44,6 +45,35 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- CONSULTA E VALIDAÇÃO DE CEP VIA VIACEP ---
+def consultar_cep(cep):
+    clean_cep = str(cep).replace("-", "").replace(".", "").strip()
+    if len(clean_cep) != 8 or not clean_cep.isdigit():
+        return None
+    try:
+        response = requests.get(f"https://viacep.com.br/ws/{clean_cep}/json/", timeout=5)
+        if response.status_code == 200:
+            dados = response.json()
+            if "erro" not in dados:
+                return dados
+    except Exception:
+        pass
+    return None
+
+def buscar_cep_por_rua(uf, cidade, logradouro):
+    if len(logradouro.strip()) < 3:
+        return []
+    try:
+        url = f"https://viacep.com.br/ws/{uf}/{urllib.parse.quote(cidade)}/{urllib.parse.quote(logradouro)}/json/"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            dados = response.json()
+            if isinstance(dados, list):
+                return dados
+    except Exception:
+        pass
+    return []
+
 # --- REPRODUTOR DE ÁUDIO E NOTIFICAÇÃO ---
 def tocar_som(tipo="click"):
     if tipo == "click":
@@ -55,7 +85,7 @@ def tocar_som(tipo="click"):
     st.components.v1.html(f'<audio autoplay style="display:none;"><source src="{audio_url}" type="audio/mpeg"></audio>', height=0, width=0)
 
 # --- GERADOR DE PDF FORMAL ---
-def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal, frete, total, status):
+def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal, frete, taxa_dificuldade, total, status, obs_dificuldade=""):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
     story = []
@@ -102,9 +132,12 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
     
     totais_data = [
         ["Subtotal Materiais:", f"R$ {subtotal:.2f}"],
-        ["Taxa de Frete / Logística:", f"R$ {frete:.2f}"],
-        ["VALOR TOTAL DO ORÇAMENTO:", f"R$ {total:.2f}"]
+        ["Taxa de Frete / Logística:", f"R$ {frete:.2f}"]
     ]
+    if taxa_dificuldade > 0:
+        totais_data.append(["Taxa Adicional de Dificuldade de Acesso:", f"R$ {taxa_dificuldade:.2f}"])
+    totais_data.append(["VALOR TOTAL DO ORÇAMENTO:", f"R$ {total:.2f}"])
+
     t_totais = Table(totais_data, colWidths=[380, 160])
     t_totais.setStyle(TableStyle([
         ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
@@ -114,6 +147,10 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
     ]))
     story.append(t_totais)
     story.append(Spacer(1, 12))
+
+    if obs_dificuldade:
+        story.append(Paragraph(f"<b>Obs. Acesso / Descarregamento:</b> {obs_dificuldade}", legal_style))
+        story.append(Spacer(1, 6))
 
     story.append(Paragraph("<b>TERMOS E CUIDADOS DE LOCAÇÃO</b>", ParagraphStyle('SubHeader', parent=styles['Heading3'], fontSize=10, textColor=colors.HexColor('#1E3A8A'))))
     story.append(Paragraph("1. <b>Conferência Amigável:</b> Verifique os itens na entrega para garantirmos juntos o sucesso do seu evento.", legal_style))
@@ -170,8 +207,8 @@ def buscar_materiais_inteligente(termo, catalogo):
             resultados.append((item, 1.0))
             continue
             
-        sim_nome = max([calcular_similaridade(termo_processado, palavra) for palavra in nome.split()])
-        sim_cat = max([calcular_similaridade(termo_processado, palavra) for palavra in categoria.split()])
+        sim_nome = max([calcular_similaridade(termo_processado, palavra) for palavra in nome.split()]) if nome.split() else 0
+        sim_cat = max([calcular_similaridade(termo_processado, palavra) for palavra in categoria.split()]) if categoria.split() else 0
         maior_sim = max(sim_nome, sim_cat)
         
         if maior_sim >= 0.55:
@@ -273,82 +310,110 @@ if modo == "Meu Perfil":
         st.subheader("Locais de Eventos Cadastrados")
         for idx, end in enumerate(st.session_state.enderecos_cadastrados):
             st.info(f"📍 **{end['rotulo']}**: {end['logradouro']} — CEP: {end['cep']}")
-            
-        with st.form("form_novo_endereco"):
-            st.write("**Cadastrar Novo Endereço:**")
-            rotulo = st.text_input("Identificação (ex: Minha Chácara, Salão de Festas)")
-            logradouro = st.text_input("Endereço Completo (Rua, Número, Bairro, Cidade)")
-            cep = st.text_input("CEP")
-            
-            if st.form_submit_button("Salvar Endereço"):
-                if rotulo and logradouro and cep:
-                    st.session_state.enderecos_cadastrados.append({
-                        "rotulo": rotulo, "logradouro": logradouro, "cep": cep
-                    })
-                    tocar_som("sucesso")
-                    st.success("Novo endereço salvo com sucesso.")
-                    st.rerun()
 
 # ==========================================
 # 📱 ÁREA DO CLIENTE & CATÁLOGO
 # ==========================================
 elif modo == "Área do Cliente":
     
-    # CHAMADA INSTITUCIONAL NO TOPO
-    st.markdown("""
-    <div style="background-color: #f8f9fa; padding: 22px; border-radius: 10px; border-left: 6px solid #1E3A8A; margin-bottom: 20px;">
-        <h2 style="color: #1E3A8A; margin-bottom: 4px; font-weight: bold;">Renascer Locações e Eventos</h2>
-        <p style="font-size: 15px; color: #1E293B; margin: 0px; font-weight: 500;">
-            🏆 <i>Há anos realizando celebrações inesquecíveis com pontualidade, qualidade e o melhor atendimento de Goiânia.</i>
-        </p>
-        <p style="font-size: 13px; color: #475569; margin-top: 10px; margin-bottom: 0px;">
-            📍 Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO 
-            <a href="https://maps.app.goo.gl/KRxqyapDwF3QVFtW8" target="_blank" style="text-decoration:none; background-color:#1E3A8A; color:white; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:bold; margin-left:6px;">
-                🗺️ Como Chegar (Google Maps)
-            </a>
-            <br/>📞 (62) 3290-5515 | WhatsApp: (62) 98224-034
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # TELA DE CADASTRO INICIAL
+    # TELA DE CADASTRO INICIAL (EXIBIDA APENAS NO PRIMEIRO ACESSO DO CLIENTE)
     if not st.session_state.cliente_perfil:
-        st.subheader("👋 Seja bem-vindo! Preencha abaixo para montar seu orçamento:")
-        
-        with st.form("form_cad_inicial"):
-            c_nome = st.text_input("Seu Nome Completo*")
-            c_tel = st.text_input("WhatsApp para Contato*")
-            c_email = st.text_input("E-mail (Opcional)")
-            st.markdown("---")
-            c_end_rua = st.text_input("Endereço de Entrega do Evento*")
-            c_end_cep = st.text_input("CEP do Local*")
-            
-            if st.form_submit_button("Escolher Materiais ➔"):
-                if c_nome and c_tel and c_end_rua and c_end_cep:
-                    st.session_state.cliente_perfil = {
-                        "nome": c_nome, "telefone": c_tel, "email": c_email
-                    }
-                    st.session_state.enderecos_cadastrados.append({
-                        "rotulo": "Endereço Principal",
-                        "logradouro": c_end_rua,
-                        "cep": c_end_cep
-                    })
-                    tocar_som("sucesso")
-                    st.rerun()
-                else:
-                    st.error("Por favor, preencha os campos obrigatórios (*) para continuar.")
+        # CHAMADA INSTITUCIONAL EXCLUSIVA DO PRIMEIRO CADASTRO
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 6px solid #1E3A8A; margin-bottom: 20px;">
+            <h2 style="color: #1E3A8A; margin-bottom: 4px; font-weight: bold; font-size: 22px;">Renascer Locações e Eventos</h2>
+            <p style="font-size: 14px; color: #1E293B; margin: 0px; font-weight: 500; line-height: 1.4;">
+                🏆 <i>Há anos realizando celebrações inesquecíveis com pontualidade, qualidade e o melhor atendimento de Goiânia.</i>
+            </p>
+            <div style="font-size: 13px; color: #475569; margin-top: 12px; line-height: 1.6;">
+                📍 Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO
+                <div style="margin-top: 8px; margin-bottom: 8px;">
+                    <a href="https://maps.app.goo.gl/KRxqyapDwF3QVFtW8" target="_blank" style="text-decoration: none; background-color: #1E3A8A; color: white; padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: bold; display: inline-block; white-space: nowrap;">
+                        🗺️ Como Chegar (Google Maps)
+                    </a>
+                </div>
+                📞 (62) 3290-5515 | WhatsApp: (62) 98224-034
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # SEGUNDA TELA: NAVEGAÇÃO SUPERIOR
+        st.subheader("👋 Seja bem-vindo! Faça seu cadastro inicial para acessar o catálogo:")
+        
+        c_nome = st.text_input("Seu Nome Completo*", key="cad_nome")
+        c_tel = st.text_input("WhatsApp para Contato*", key="cad_tel")
+        c_email = st.text_input("E-mail (Opcional)", key="cad_email")
+        
+        st.markdown("---")
+        st.write("### 🏠 Endereço Residencial Principal")
+        
+        c_cep = st.text_input("Digite o CEP da sua Residência*", key="cad_cep")
+        
+        dados_cep_val = None
+        if c_cep:
+            dados_cep_val = consultar_cep(c_cep)
+            if dados_cep_val:
+                st.success(f"📍 **Endereço Localizado:** {dados_cep_val.get('logradouro')}, {dados_cep_val.get('bairro')} - {dados_cep_val.get('localidade')}/{dados_cep_val.get('uf')}")
+            else:
+                st.error("⚠️ CEP não encontrado ou inválido. Digite um CEP válido com 8 dígitos.")
+                with st.expander("🔍 Não sabe o CEP? Busque pelo nome da rua"):
+                    col_uf, col_cid = st.columns([1, 2])
+                    uf_busca = col_uf.selectbox("UF", ["GO", "DF", "SP", "RJ", "MG"], key="cad_uf_b")
+                    cid_busca = col_cid.text_input("Cidade", value="Goiânia", key="cad_cid_b")
+                    rua_busca = st.text_input("Nome da Rua / Logradouro (mín. 3 letras)", key="cad_rua_b")
+                    if st.button("Buscar CEP", key="btn_b_cep_cad"):
+                        res_ceps = buscar_cep_por_rua(uf_busca, cid_busca, rua_busca)
+                        if res_ceps:
+                            for c_item in res_ceps[:5]:
+                                st.write(f"👉 **CEP:** `{c_item.get('cep')}` — {c_item.get('logradouro')}, {c_item.get('bairro')}")
+                        else:
+                            st.warning("Nenhum CEP localizado para este nome de rua.")
+        
+        c_num = st.text_input("Número e Complemento (ex: Qd. 10 Lt. 05 / Ap. 302)*", key="cad_num")
+        
+        if st.button("Concluir Cadastro e Ir para o Catálogo ➔", use_container_width=True):
+            if not c_nome or not c_tel or not c_cep or not c_num:
+                st.error("Por favor, preencha todos os campos obrigatórios (*).")
+            elif not dados_cep_val:
+                st.error("Digite um CEP válido para concluir o cadastro residencial.")
+            else:
+                end_completo = f"{dados_cep_val.get('logradouro')}, {c_num} - {dados_cep_val.get('bairro')}, {dados_cep_val.get('localidade')}/{dados_cep_val.get('uf')}"
+                st.session_state.cliente_perfil = {
+                    "nome": c_nome, "telefone": c_tel, "email": c_email
+                }
+                st.session_state.enderecos_cadastrados.append({
+                    "rotulo": "Minha Residência",
+                    "logradouro": end_completo,
+                    "cep": str(c_cep).replace("-", "").replace(".", "").strip()
+                })
+                tocar_som("sucesso")
+                st.rerun()
+
+    # TELA PRINCIPAL (APÓS PRIMEIRO CADASTRO: VAI DIRETO PARA O CATÁLOGO E NAVEGAÇÃO)
     else:
         cli = st.session_state.cliente_perfil
-        tem_orcamento_em_andamento = bool(st.session_state.carrinho_atual)
         
-        col_saudacao, col_status_carrinho = st.columns([3, 1])
-        with col_saudacao:
-            st.markdown(f"<p style='font-size:14px; color:#475569; margin:0px;'>Olá, <b>{cli['nome']}</b>! Seja bem-vindo(a).</p>", unsafe_allow_html=True)
-        with col_status_carrinho:
-            q_total_itens = sum(st.session_state.carrinho_atual.values())
-            st.markdown(f"<p style='font-size:14px; color:#1E3A8A; font-weight:bold; text-align:right; margin:0px;'>🛒 {q_total_itens} item(ns) no orçamento</p>", unsafe_allow_html=True)
+        # CABEÇALHO SUPERIOR FIXO E COMPACTO
+        q_total_itens = sum(st.session_state.carrinho_atual.values())
+        tot_carrinho_temp = 0.0
+        for item_id, q in st.session_state.carrinho_atual.items():
+            prod = next((i for i in st.session_state.catalogo if i['id'] == item_id), None)
+            if prod:
+                tot_carrinho_temp += prod['preco'] * q
+                if item_id in st.session_state.toalhas_vinculadas:
+                    tot_carrinho_temp += st.session_state.toalhas_vinculadas[item_id]['preco'] * q
+
+        st.markdown(f"""
+        <div style="background-color: #1E3A8A; color: white; padding: 12px 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0px 3px 8px rgba(0,0,0,0.12);">
+            <div>
+                <span style="font-size: 16px; font-weight: bold;">👋 Olá, {cli['nome']}!</span>
+            </div>
+            <div>
+                <span style="font-size: 15px; background-color: #FFFFFF; color: #1E3A8A; padding: 6px 14px; border-radius: 20px; font-weight: bold;">
+                    🛒 {q_total_itens} item(ns) | Total: R$ {tot_carrinho_temp:.2f}
+                </span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         pedidos_homologados_recentes = [p for p in st.session_state.pedidos_standby if p.get('status') == 'Homologado (Disponibilidade Confirmada)' and p.get('alerta_tocado') != True]
         if pedidos_homologados_recentes:
@@ -429,28 +494,87 @@ elif modo == "Área do Cliente":
 
         # TAB 2: FINALIZAR ORÇAMENTO
         with tab_carrinho:
-            st.subheader("📋 Resumo do Seu Orçamento")
+            st.subheader("📋 Resumo do Seu Orçamento e Local de Entrega")
             
             if not st.session_state.carrinho_atual:
                 st.info("Seu carrinho está vazio. Acesse a aba 'Catálogo de Materiais' para escolher os itens do seu evento.")
             else:
-                col_e1, col_e2 = st.columns(2)
-                with col_e1:
-                    opcoes_end = [f"{e['rotulo']} ({e['logradouro']} - CEP: {e['cep']})" for e in st.session_state.enderecos_cadastrados] + ["Outro Endereço"]
-                    sel_end = st.selectbox("Local do Evento:", opcoes_end)
-                    
-                    if sel_end == "Outro Endereço":
-                        end_rua_festa = st.text_input("Endereço Completo da Festa")
-                        end_cep_festa = st.text_input("CEP da Festa")
-                    else:
-                        idx_end = opcoes_end.index(sel_end)
-                        end_rua_festa = st.session_state.enderecos_cadastrados[idx_end]['logradouro']
-                        end_cep_festa = st.session_state.enderecos_cadastrados[idx_end]['cep']
-                        
-                with col_e2:
-                    data_festa = st.date_input("Data da Festa:")
+                st.write("### 🚚 Local do Evento & Entrega")
                 
-                dados_frete = calcular_distancia_cep(end_cep_festa)
+                tipo_local = st.radio(
+                    "Onde será realizada a entrega dos materiais?",
+                    ["Sera na Minha Casa (Endereço do Cadastro)", "Em Outro Endereço / Salão de Festas / Chácara"],
+                    key="radio_tipo_local"
+                )
+                
+                end_rua_festa = ""
+                end_cep_festa = ""
+                cep_validado_ok = False
+                
+                if tipo_local == "Sera na Minha Casa (Endereço do Cadastro)":
+                    if st.session_state.enderecos_cadastrados:
+                        end_rua_festa = st.session_state.enderecos_cadastrados[0]['logradouro']
+                        end_cep_festa = st.session_state.enderecos_cadastrados[0]['cep']
+                        cep_validado_ok = True
+                        st.info(f"📍 **Endereço Selecionado:** {end_rua_festa} (CEP: {end_cep_festa})")
+                else:
+                    st.write("**Informe o CEP do novo local de entrega:**")
+                    end_cep_festa = st.text_input("CEP do Local do Evento*", key="input_cep_novo_local")
+                    
+                    if end_cep_festa:
+                        dados_c_novo = consultar_cep(end_cep_festa)
+                        if dados_c_novo:
+                            cep_validado_ok = True
+                            rua_previa = f"{dados_c_novo.get('logradouro')}, {dados_c_novo.get('bairro')} - {dados_c_novo.get('localidade')}/{dados_c_novo.get('uf')}"
+                            st.success(f"📍 **Prévia do Endereço:** {rua_previa}")
+                            num_compl_novo = st.text_input("Número / Complemento / Nome do Salão ou Chácara*", key="input_num_novo_local")
+                            end_rua_festa = f"{rua_previa} ({num_compl_novo})" if num_compl_novo else rua_previa
+                        else:
+                            st.error("⚠️ CEP não encontrado. Digite um CEP válido de 8 dígitos para o cálculo exato do frete.")
+                            with st.expander("🔍 Não sabe o CEP do local? Encontre pelo nome da rua"):
+                                col_uf2, col_cid2 = st.columns([1, 2])
+                                uf_b2 = col_uf2.selectbox("UF", ["GO", "DF", "SP", "RJ", "MG"], key="uf_b2")
+                                cid_b2 = col_cid2.text_input("Cidade", value="Goiânia", key="cid_b2")
+                                rua_b2 = st.text_input("Nome da Rua / Logradouro (mín. 3 letras)", key="rua_b2")
+                                if st.button("Buscar CEP do Local", key="btn_b_cep_loc"):
+                                    res2 = buscar_cep_por_rua(uf_b2, cid_b2, rua_b2)
+                                    if res2:
+                                        for c2 in res2[:5]:
+                                            st.write(f"👉 **CEP:** `{c2.get('cep')}` — {c2.get('logradouro')}, {c2.get('bairro')}")
+                                    else:
+                                        st.warning("Nenhum CEP encontrado.")
+                
+                st.markdown("---")
+                st.write("### 🏢 Tipo de Imóvel e Acesso para Descarregamento")
+                
+                tipo_imovel = st.selectbox(
+                    "Selecione o tipo do local de entrega:",
+                    ["Residência (Casa)", "Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"]
+                )
+                
+                tem_dificuldade = False
+                grau_dificuldade = 1
+                taxa_dificuldade = 0.0
+                obs_dificuldade = ""
+                
+                if tipo_imovel in ["Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"]:
+                    st.write("**Atenção:** Locais com escadas, elevadores demorados ou longas distâncias a pé exigem equipe adicional.")
+                    resp_dif = st.radio(
+                        "Existe dificuldade ou longa distância a pé para o descarregamento dos materiais?",
+                        ["Não", "Sim"],
+                        key="radio_dificuldade"
+                    )
+                    
+                    if resp_dif == "Sim":
+                        tem_dificuldade = True
+                        grau_dificuldade = st.slider("De 1 a 10, qual o grau de dificuldade do descarregamento?", min_value=1, max_value=10, value=3)
+                        obs_dificuldade = st.text_area("Descreva o motivo da dificuldade (ex: 3º andar de escada, 150m de caminhada do caminhão até o salão):", key="txt_obs_dificuldade")
+
+                col_dt1, col_dt2 = st.columns(2)
+                with col_dt1:
+                    data_festa = st.date_input("Data da Festa / Evento:", key="dt_evento_festa")
+
+                dados_frete = calcular_distancia_cep(end_cep_festa) if cep_validado_ok else None
                 val_frete = dados_frete['valor_frete'] if dados_frete else 0.0
 
                 st.markdown("---")
@@ -467,8 +591,8 @@ elif modo == "Área do Cliente":
                     st.write(f"**Cliente:** {cli['nome']}")
                     st.write(f"**Contato:** {cli['telefone']}")
                 with col_d2:
-                    st.write(f"**Data do Evento:** {data_festa}")
-                    st.write(f"**Endereço de Entrega:** {end_rua_festa}")
+                    st.write(f"**Data do Evento:** {data_festa.strftime('%d/%m/%Y') if hasattr(data_festa, 'strftime') else data_festa}")
+                    st.write(f"**Endereço de Entrega:** {end_rua_festa if end_rua_festa else 'A preencher'}")
                 
                 st.markdown("##### Itens Selecionados:")
                 
@@ -479,57 +603,62 @@ elif modo == "Área do Cliente":
                 tabela_itens_html += "<tr style='background-color:#F1F5F9; border-bottom: 2px solid #CBD5E1;'><th style='text-align:left; padding:8px;'>Item</th><th style='text-align:center;'>Qtd</th><th style='text-align:right;'>Unitário</th><th style='text-align:right;'>Total</th></tr>"
                 
                 for item_id, q in st.session_state.carrinho_atual.items():
-                    prod = next(i for i in st.session_state.catalogo if i['id'] == item_id)
-                    tot_prod = prod['preco'] * q
-                    subtotal_materiais += tot_prod
-                    lista_pdf_itens.append({"nome": prod['nome'], "qtd": q, "preco": prod['preco'], "total": tot_prod})
-                    
-                    tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0;'><td style='padding:8px;'>{prod['nome']}</td><td style='text-align:center;'>{q}</td><td style='text-align:right;'>R$ {prod['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_prod:.2f}</td></tr>"
-                    
-                    if item_id in st.session_state.toalhas_vinculadas:
-                        t_info = st.session_state.toalhas_vinculadas[item_id]
-                        tot_toalha = t_info['preco'] * q
-                        subtotal_materiais += tot_toalha
-                        nome_t = f"Toalha {t_info['tipo'].capitalize()} ({t_info['cor']})"
-                        lista_pdf_itens.append({"nome": nome_t, "qtd": q, "preco": t_info['preco'], "total": tot_toalha})
-                        tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0; color:#475569;'><td style='padding:8px; padding-left:25px;'>└ ➕ {nome_t}</td><td style='text-align:center;'>{q}</td><td style='text-align:right;'>R$ {t_info['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_toalha:.2f}</td></tr>"
+                    prod = next((i for i in st.session_state.catalogo if i['id'] == item_id), None)
+                    if prod:
+                        tot_prod = prod['preco'] * q
+                        subtotal_materiais += tot_prod
+                        lista_pdf_itens.append({"nome": prod['nome'], "qtd": q, "preco": prod['preco'], "total": tot_prod})
+                        
+                        tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0;'><td style='padding:8px;'>{prod['nome']}</td><td style='text-align:center;'>{q}</td><td style='text-align:right;'>R$ {prod['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_prod:.2f}</td></tr>"
+                        
+                        if item_id in st.session_state.toalhas_vinculadas:
+                            t_info = st.session_state.toalhas_vinculadas[item_id]
+                            tot_toalha = t_info['preco'] * q
+                            subtotal_materiais += tot_toalha
+                            nome_t = f"Toalha {t_info['tipo'].capitalize()} ({t_info['cor']})"
+                            lista_pdf_itens.append({"nome": nome_t, "qtd": q, "preco": t_info['preco'], "total": tot_toalha})
+                            tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0; color:#475569;'><td style='padding:8px; padding-left:25px;'>└ ➕ {nome_t}</td><td style='text-align:center;'>{q}</td><td style='text-align:right;'>R$ {t_info['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_toalha:.2f}</td></tr>"
 
                 tabela_itens_html += "</table>"
                 st.markdown(tabela_itens_html, unsafe_allow_html=True)
                 
-                valor_total_bruto = subtotal_materiais + val_frete
+                # CÁLCULO DA TAXA ADICIONAL DE DIFICULDADE (Base 30,00 + Grau % sobre os Materiais)
+                if tem_dificuldade:
+                    taxa_dificuldade = 30.00 + (subtotal_materiais * (grau_dificuldade / 100.0))
+
+                valor_total_bruto = subtotal_materiais + val_frete + taxa_dificuldade
                 
                 st.markdown("---")
                 col_t1, col_t2 = st.columns([2, 2])
                 with col_t2:
                     st.write(f"Subtotal dos Materiais: **R$ {subtotal_materiais:.2f}**")
-                    st.write(f"Taxa de Entrega / Frete: **R$ {val_frete:.2f}**")
+                    st.write(f"Taxa de Entrega / Frete Base: **R$ {val_frete:.2f}**")
+                    if tem_dificuldade:
+                        st.write(f"Taxa Adicional Acesso/Dificuldade (Grau {grau_dificuldade}): **R$ {taxa_dificuldade:.2f}**")
                     st.markdown(f"<h3 style='color:#1E3A8A; margin:0px;'>Total Geral: R$ {valor_total_bruto:.2f}</h3>", unsafe_allow_html=True)
 
                 st.markdown("</div>", unsafe_allow_html=True)
                 
-                # --- CAIXA DE TEXTO COM ROLAGEM OBRIGATÓRIA E TERMOS DE DEVOLUÇÃO ---
+                # --- TERMOS DE DEVOLUÇÃO ---
                 st.markdown("---")
                 st.markdown("#### 📜 Termos Simples de Recebimento e Devolução")
-                st.caption("Por favor, role a caixa abaixo até o fim para ler e aceitar as condições de uso:")
+                st.caption("Por favor, leia e aceite as condições de uso para habilitar a finalização:")
                 
-                with st.container(height=180):
+                with st.container(height=160):
                     st.markdown("""
                     **Bem-vindo à Renascer Locações! Preparamos tudo para que seu evento seja perfeito.**
                     
-                    * **1. Conferência na Entrega:** Ao receber os materiais, confira os itens junto com a nossa equipe. Caso perceba qualquer detalhe, avise-nos imediatamente.
-                    * **2. Cuidados e Devolução:** Pedimos o carinho de devolver louças, copos e talheres organizados nas caixas e embalagens plásticas enviadas.
-                    * **3. Eventuais Danos:** Sabemos que imprevistos acontecem! Caso ocorra alguma quebra ou perda, será cobrado apenas o valor de custo do item para reposição.
-                    * **4. Confirmação de Reserva:** A finalização do orçamento realiza a pré-reserva. A confirmação definitiva ocorre após validação da nossa equipe para a data do evento.
-                    
-                    *Agradecemos a confiança em nosso trabalho!*
+                    * **1. Conferência na Entrega:** Ao receber os materiais, confira os itens junto com a nossa equipe.
+                    * **2. Cuidados e Devolução:** Devolva louças, copos e talheres organizados nas embalagens originais enviadas.
+                    * **3. Eventuais Danos:** Caso ocorra alguma quebra ou perda, será cobrado o valor de custo praticado no mercado.
+                    * **4. Confirmação de Reserva:** A finalização realiza a solicitação de reserva. A confirmação definitiva ocorre após homologação do estoque.
                     """)
 
-                concordou_termos = st.checkbox("✅ Li e concordo com os Termos de Locação e Devolução")
+                concordou_termos = st.checkbox("✅ Li e concordo com os Termos de Locação e Devolução", key="chk_termos_aceite")
 
                 pdf_bytes = gerar_pdf_orcamento(
                     cli, "Orçamento Formal", str(data_festa), end_rua_festa,
-                    lista_pdf_itens, subtotal_materiais, val_frete, valor_total_bruto, "Rascunho de Orçamento"
+                    lista_pdf_itens, subtotal_materiais, val_frete, taxa_dificuldade, valor_total_bruto, "Rascunho de Orçamento", obs_dificuldade
                 )
                 st.download_button(
                     label="📄 Baixar Cópia Formal em PDF",
@@ -544,18 +673,24 @@ elif modo == "Área do Cliente":
                 
                 opcao_fechar = st.radio(
                     "O que você deseja fazer agora?",
-                    ["Salvar Orçamento para Analisar Depois", "Confirmar Pedido e Solicitar Reserva de Estoque"]
+                    ["Confirmar Pedido e Solicitar Reserva de Estoque", "Salvar Orçamento para Analisar Depois"],
+                    key="radio_opcao_finalizar"
                 )
                 
-                nome_identificador = st.text_input("Dê um nome para o seu evento (ex: Aniversário da Maria, Churrasco de Domingo):")
+                nome_identificador = st.text_input(
+                    "Dê um nome para o seu evento (ex: Aniversário da Maria, Churrasco de Domingo):",
+                    key="input_nome_evento"
+                )
 
-                btn_desabilitado = not concordou_termos
+                btn_desabilitado = not concordou_termos or not cep_validado_ok
 
                 if st.button("💾 Gravar e Finalizar Orçamento", use_container_width=True, disabled=btn_desabilitado):
                     if not nome_identificador:
-                        st.error("Digite um nome para identificar o seu evento.")
+                        st.error("Por favor, digite um nome para identificar o seu evento antes de finalizar.")
+                    elif not cep_validado_ok:
+                        st.error("Insira um CEP válido para calcular o frete e liberar a gravação.")
                     else:
-                        status_final = "Em Análise" if opcao_fechar == "Salvar Orçamento para Analisar Depois" else "Aguardando Homologação da Renascer"
+                        status_final = "Aguardando Homologação da Renascer" if opcao_fechar == "Confirmar Pedido e Solicitar Reserva de Estoque" else "Em Análise"
                         
                         if st.session_state.pedido_edicao_id:
                             for p in st.session_state.pedidos_standby:
@@ -564,24 +699,29 @@ elif modo == "Área do Cliente":
                                     p['data'] = str(data_festa)
                                     p['endereco'] = end_rua_festa
                                     p['frete'] = val_frete
+                                    p['taxa_dificuldade'] = taxa_dificuldade
                                     p['total'] = valor_total_bruto
                                     p['subtotal'] = subtotal_materiais
                                     p['status'] = status_final
+                                    p['obs_dificuldade'] = obs_dificuldade
                                     p['itens'] = dict(st.session_state.carrinho_atual)
                                     p['toalhas'] = dict(st.session_state.toalhas_vinculadas)
                                     p['itens_detalhe'] = lista_pdf_itens
                             st.session_state.pedido_edicao_id = None
                         else:
+                            novo_id = len(st.session_state.pedidos_standby) + 1
                             novo_stb = {
-                                "id": len(st.session_state.pedidos_standby) + 1,
+                                "id": novo_id,
                                 "cliente": cli,
                                 "evento": nome_identificador,
                                 "data": str(data_festa),
                                 "endereco": end_rua_festa,
                                 "frete": val_frete,
+                                "taxa_dificuldade": taxa_dificuldade,
                                 "subtotal": subtotal_materiais,
                                 "total": valor_total_bruto,
                                 "status": status_final,
+                                "obs_dificuldade": obs_dificuldade,
                                 "itens": dict(st.session_state.carrinho_atual),
                                 "toalhas": dict(st.session_state.toalhas_vinculadas),
                                 "itens_detalhe": lista_pdf_itens,
@@ -592,7 +732,7 @@ elif modo == "Área do Cliente":
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
                         tocar_som("sucesso")
-                        st.success("Seu orçamento/pedido foi gravado com sucesso! Veja o status na aba 'MEUS EVENTOS'.")
+                        st.success("🎉 Seu pedido foi enviado com sucesso e está aguardando homologação!")
                         st.rerun()
 
         # TAB 3: MEUS EVENTOS / STANDBY
@@ -607,7 +747,9 @@ elif modo == "Área do Cliente":
                 for ped in meus_pedidos:
                     with st.expander(f"🎉 {ped['evento']} — Data: {ped['data']} (Status: {ped['status']})"):
                         st.write(f"**Endereço:** {ped['endereco']}")
-                        st.write(f"**Valor Total:** R$ {ped['total']:.2f} (Materiais: R$ {ped['subtotal']:.2f} | Frete: R$ {ped['frete']:.2f})")
+                        st.write(f"**Valor Total:** R$ {ped['total']:.2f} (Materiais: R$ {ped['subtotal']:.2f} | Frete: R$ {ped['frete']:.2f} | Dificuldade: R$ {ped.get('taxa_dificuldade', 0.0):.2f})")
+                        if ped.get('obs_dificuldade'):
+                            st.write(f"**Obs. Acesso:** {ped['obs_dificuldade']}")
                         
                         st.write("**Itens do Pedido:**")
                         for item_det in ped['itens_detalhe']:
@@ -626,7 +768,7 @@ elif modo == "Área do Cliente":
                         with col_actions2:
                             pdf_p = gerar_pdf_orcamento(
                                 ped['cliente'], ped['evento'], ped['data'], ped['endereco'],
-                                ped['itens_detalhe'], ped['subtotal'], ped['frete'], ped['total'], ped['status']
+                                ped['itens_detalhe'], ped['subtotal'], ped['frete'], ped.get('taxa_dificuldade', 0.0), ped['total'], ped['status'], ped.get('obs_dificuldade', "")
                             )
                             st.download_button(
                                 label="📄 Baixar PDF",
@@ -659,7 +801,9 @@ elif modo == "Painel Administrativo":
                 with st.expander(f"ID #{p['id']} - {p['cliente']['nome']} - Evento: {p['evento']} ({p['status']})"):
                     st.write(f"**Contato:** {p['cliente']['telefone']} | **Data:** {p['data']}")
                     st.write(f"**Endereço:** {p['endereco']}")
-                    st.write(f"**Total:** R$ {p['total']:.2f}")
+                    st.write(f"**Total:** R$ {p['total']:.2f} (Frete: R$ {p['frete']:.2f} | Adic. Acesso: R$ {p.get('taxa_dificuldade', 0.0):.2f})")
+                    if p.get('obs_dificuldade'):
+                        st.write(f"**Obs. Dificuldade de Acesso:** {p['obs_dificuldade']}")
                     
                     st.markdown("**Itens:**")
                     for it in p['itens_detalhe']:
