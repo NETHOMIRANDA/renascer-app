@@ -316,9 +316,8 @@ if modo == "Meu Perfil":
 # ==========================================
 elif modo == "Área do Cliente":
     
-    # TELA DE CADASTRO INICIAL (EXIBIDA APENAS NO PRIMEIRO ACESSO DO CLIENTE)
+    # TELA DE CADASTRO INICIAL
     if not st.session_state.cliente_perfil:
-        # CHAMADA INSTITUCIONAL EXCLUSIVA DO PRIMEIRO CADASTRO
         st.markdown("""
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 6px solid #1E3A8A; margin-bottom: 20px;">
             <h2 style="color: #1E3A8A; margin-bottom: 4px; font-weight: bold; font-size: 22px;">Renascer Locações e Eventos</h2>
@@ -388,11 +387,10 @@ elif modo == "Área do Cliente":
                 tocar_som("sucesso")
                 st.rerun()
 
-    # TELA PRINCIPAL (APÓS PRIMEIRO CADASTRO: VAI DIRETO PARA O CATÁLOGO E NAVEGAÇÃO)
+    # TELA PRINCIPAL DO CLIENTE (Navegação Direta)
     else:
         cli = st.session_state.cliente_perfil
         
-        # CABEÇALHO SUPERIOR FIXO E COMPACTO
         q_total_itens = sum(st.session_state.carrinho_atual.values())
         tot_carrinho_temp = 0.0
         for item_id, q in st.session_state.carrinho_atual.items():
@@ -549,7 +547,8 @@ elif modo == "Área do Cliente":
                 
                 tipo_imovel = st.selectbox(
                     "Selecione o tipo do local de entrega:",
-                    ["Residência (Casa)", "Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"]
+                    ["Residência (Casa)", "Edifício (Prédio / Apartamento)", "Condomínio Fechado / Chácara"],
+                    key="sel_tipo_imovel_op"
                 )
                 
                 tem_dificuldade = False
@@ -567,7 +566,7 @@ elif modo == "Área do Cliente":
                     
                     if resp_dif == "Sim":
                         tem_dificuldade = True
-                        grau_dificuldade = st.slider("De 1 a 10, qual o grau de dificuldade do descarregamento?", min_value=1, max_value=10, value=3)
+                        grau_dificuldade = st.slider("De 1 a 10, qual o grau de dificuldade do descarregamento?", min_value=1, max_value=10, value=3, key="sld_grau_dif")
                         obs_dificuldade = st.text_area("Descreva o motivo da dificuldade (ex: 3º andar de escada, 150m de caminhada do caminhão até o salão):", key="txt_obs_dificuldade")
 
                 col_dt1, col_dt2 = st.columns(2)
@@ -671,12 +670,6 @@ elif modo == "Área do Cliente":
                 st.markdown("---")
                 st.markdown("#### Finalização do Pedido")
                 
-                opcao_fechar = st.radio(
-                    "O que você deseja fazer agora?",
-                    ["Confirmar Pedido e Solicitar Reserva de Estoque", "Salvar Orçamento para Analisar Depois"],
-                    key="radio_opcao_finalizar"
-                )
-                
                 nome_identificador = st.text_input(
                     "Dê um nome para o seu evento (ex: Aniversário da Maria, Churrasco de Domingo):",
                     key="input_nome_evento"
@@ -684,13 +677,13 @@ elif modo == "Área do Cliente":
 
                 btn_desabilitado = not concordou_termos or not cep_validado_ok
 
-                if st.button("💾 Gravar e Finalizar Orçamento", use_container_width=True, disabled=btn_desabilitado):
+                if st.button("💾 Gravar Pedido e Enviar para Homologação ➔", use_container_width=True, disabled=btn_desabilitado):
                     if not nome_identificador:
                         st.error("Por favor, digite um nome para identificar o seu evento antes de finalizar.")
                     elif not cep_validado_ok:
                         st.error("Insira um CEP válido para calcular o frete e liberar a gravação.")
                     else:
-                        status_final = "Aguardando Homologação da Renascer" if opcao_fechar == "Confirmar Pedido e Solicitar Reserva de Estoque" else "Em Análise"
+                        status_final = "Aguardando Homologação da Renascer"
                         
                         if st.session_state.pedido_edicao_id:
                             for p in st.session_state.pedidos_standby:
@@ -729,20 +722,21 @@ elif modo == "Área do Cliente":
                             }
                             st.session_state.pedidos_standby.append(novo_stb)
                         
+                        # Limpeza do carrinho temporário
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
                         tocar_som("sucesso")
-                        st.success("🎉 Seu pedido foi enviado com sucesso e está aguardando homologação!")
+                        st.success("🎉 Seu pedido foi enviado com sucesso e está aguardando homologação! Consulte a aba 'MEUS EVENTOS'.")
                         st.rerun()
 
-        # TAB 3: MEUS EVENTOS / STANDBY
+        # TAB 3: MEUS EVENTOS / STANDBY (CONSULTA DE PEDIDOS SALVOS/FUTUROS)
         with tab_standby:
             st.subheader("📅 Seus Eventos Salvos e Solicitados")
             
             meus_pedidos = [p for p in st.session_state.pedidos_standby if p['cliente']['telefone'] == cli['telefone']]
             
             if not meus_pedidos:
-                st.info("Você ainda não salvou nenhum evento.")
+                st.info("Você ainda não possui eventos gravados em seu histórico.")
             else:
                 for ped in meus_pedidos:
                     with st.expander(f"🎉 {ped['evento']} — Data: {ped['data']} (Status: {ped['status']})"):
