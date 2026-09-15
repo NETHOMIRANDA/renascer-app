@@ -596,7 +596,7 @@ elif modo == "Área do Cliente":
                         st.image(qr_url, caption="QR Code PIX", width=180)
                     with col_pix2:
                         st.write("**Chave PIX (Telefone):** `6298224034`")
-                        st.write("**Favorecido:** Valdir Ferreira Miranda / Renascer Locações")[cite: 1]
+                        st.write("**Favorecido:** Valdir Ferreira Miranda / Renascer Locações")
                         st.write(f"**Valor a Pagar:** R$ {valor_total_bruto:.2f}")
                         
                         txt_whatsapp = f"📋 *NOVO PEDIDO EFETIVADO - RENASCER LOCAÇÕES*\n"
