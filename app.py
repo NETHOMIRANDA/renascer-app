@@ -376,6 +376,9 @@ if 'carrinho_atual' not in st.session_state:
 if 'toalhas_vinculadas' not in st.session_state:
     st.session_state.toalhas_vinculadas = {}
 
+if 'guardanapos_vinculados' not in st.session_state:
+    st.session_state.guardanapos_vinculados = {}
+
 if 'pedidos_standby' not in st.session_state:
     st.session_state.pedidos_standby = []
 
@@ -560,6 +563,10 @@ elif modo == "Área do Cliente":
                     t_vinc = st.session_state.toalhas_vinculadas[item_id]
                     tot_carrinho_temp += t_vinc['preco'] * t_vinc['qtd']
 
+        # Adiciona total de guardanapos personalizados na soma
+        for g_id, g_vinc in st.session_state.guardanapos_vinculados.items():
+            tot_carrinho_temp += g_vinc['preco'] * g_vinc['qtd']
+
         st.markdown(f"""
         <div style="background-color: #1E3A8A; color: white; padding: 14px 24px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0px 4px 12px rgba(30, 58, 138, 0.15);">
             <div>
@@ -597,7 +604,7 @@ elif modo == "Área do Cliente":
             
             col_busca, col_cardapio = st.columns([3, 1])
             with col_busca:
-                input_busca = st.text_input("🔍 O que você procura? (ex: mesa, aparador, freezer, prato, taça...)", value=st.session_state.termo_busca, key="input_busca_campo")
+                input_busca = st.text_input("🔍 O que você procura? (ex: mesa, aparador, guardanapo, freezer, prato, taça...)", value=st.session_state.termo_busca, key="input_busca_campo")
                 st.session_state.termo_busca = input_busca
             with col_cardapio:
                 st.write("&#160;")
@@ -620,10 +627,10 @@ elif modo == "Área do Cliente":
                             if item.get("foto") and str(item['foto']).strip() != "":
                                 st.image(item['foto'], width=150)
                             
-                            # --- CAMPO DINÂMICO PARA INCLUSÃO DE TOALHA EM MESAS E APARADORES ---
                             nome_item_lower = str(item['nome']).lower()
                             tipo_mesa_val = str(item.get("tipo_mesa", "None")).lower()
                             
+                            # --- CAMPO DINÂMICO PARA INCLUSÃO DE TOALHA EM MESAS E APARADORES ---
                             is_mesa_ou_aparador = (
                                 "mesa" in nome_item_lower or 
                                 "aparador" in nome_item_lower or 
@@ -656,7 +663,6 @@ elif modo == "Área do Cliente":
                                             key=f"qtd_toalha_{item['id']}"
                                         )
                                     
-                                    # Preço do Estoque baseado na modalidade do móvel
                                     preco_unit_toalha = obter_preco_toalha_estoque(tipo_mesa_val, st.session_state.catalogo)
                                     st.caption(f"💡 Valor unitário da toalha (conforme estoque): **R$ {preco_unit_toalha:.2f}**")
                                     
@@ -669,25 +675,69 @@ elif modo == "Área do Cliente":
                                 else:
                                     st.session_state.toalhas_vinculadas.pop(item['id'], None)
 
-                        with col_qtd:
-                            qtd_atual = st.session_state.carrinho_atual.get(item['id'], 0)
-                            nova_qtd = st.number_input(
-                                "Quantidade:", min_value=0, max_value=int(item['estoque']), 
-                                value=int(qtd_atual), key=f"item_qtd_{item['id']}"
-                            )
-                            if nova_qtd != qtd_atual:
-                                if nova_qtd > 0:
-                                    st.session_state.carrinho_atual[item['id']] = nova_qtd
+                            # --- CAMPO DINÂMICO PARA INCLUSÃO DE COR NOS GUARDANAPOS ---
+                            is_guardanapo = "guardanapo" in nome_item_lower
+
+                            if is_guardanapo:
+                                st.markdown("---")
+                                quer_guardanapo_cor = st.checkbox(
+                                    f"Deseja especificar a cor e quantidade para este guardanapo?",
+                                    value=(item['id'] in st.session_state.guardanapos_vinculados),
+                                    key=f"chk_guardanapo_{item['id']}"
+                                )
+                                
+                                if quer_guardanapo_cor:
+                                    col_g_cor, col_g_qtd = st.columns([2, 1])
+                                    with col_g_cor:
+                                        cor_guardanapo = st.text_input(
+                                            "Digite a cor pretendida para os guardanapos:",
+                                            value=st.session_state.guardanapos_vinculados.get(item['id'], {}).get('cor', 'Branca'),
+                                            placeholder="Ex: Vermelho, Marsala, Dourado, Branco...",
+                                            key=f"cor_guardanapo_{item['id']}"
+                                        )
+                                    with col_g_qtd:
+                                        qtd_g_escolhida = st.number_input(
+                                            "Qtd de guardanapos:",
+                                            min_value=1,
+                                            max_value=int(item['estoque']),
+                                            value=int(st.session_state.guardanapos_vinculados.get(item['id'], {}).get('qtd', 10)),
+                                            key=f"qtd_guardanapo_{item['id']}"
+                                        )
+                                    
+                                    st.caption(f"💡 Valor unitário do guardanapo (conforme estoque): **R$ {item['preco']:.2f}**")
+                                    
+                                    st.session_state.guardanapos_vinculados[item['id']] = {
+                                        "cor": cor_guardanapo if cor_guardanapo.strip() else "Não especificada",
+                                        "qtd": qtd_g_escolhida,
+                                        "preco": item['preco']
+                                    }
                                 else:
-                                    st.session_state.carrinho_atual.pop(item['id'], None)
-                                tocar_som("click")
+                                    st.session_state.guardanapos_vinculados.pop(item['id'], None)
+
+                        with col_qtd:
+                            # Para guardanapos com cor customizada, gerenciamos pela caixa de inclusão dedicada
+                            if not "guardanapo" in str(item['nome']).lower():
+                                qtd_atual = st.session_state.carrinho_atual.get(item['id'], 0)
+                                nova_qtd = st.number_input(
+                                    "Quantidade:", min_value=0, max_value=int(item['estoque']), 
+                                    value=int(qtd_atual), key=f"item_qtd_{item['id']}"
+                                )
+                                if nova_qtd != qtd_atual:
+                                    if nova_qtd > 0:
+                                        st.session_state.carrinho_atual[item['id']] = nova_qtd
+                                    else:
+                                        st.session_state.carrinho_atual.pop(item['id'], None)
+                                    tocar_som("click")
+                            else:
+                                st.write("✏️ *Configure a cor e quantidade nas opções ao lado.*")
+
                     st.divider()
 
         # TAB 2: FINALIZAR ORÇAMENTO
         with tab_carrinho:
             st.subheader("📋 Resumo do Seu Orçamento e Local de Entrega")
             
-            if not st.session_state.carrinho_atual:
+            if not st.session_state.carrinho_atual and not st.session_state.guardanapos_vinculados:
                 st.info("Seu carrinho está vazio. Acesse a aba 'Catálogo de Materiais' para escolher os itens do seu evento.")
             else:
                 st.write("### 🚚 Local do Evento & Entrega")
@@ -794,6 +844,7 @@ elif modo == "Área do Cliente":
                 tabela_itens_html = "<table style='width:100%; border-collapse: collapse; margin-top:10px; font-size:14px;'>"
                 tabela_itens_html += "<tr style='background-color:#F1F5F9; border-bottom: 2px solid #CBD5E1;'><th style='text-align:left; padding:8px;'>Item</th><th style='text-align:center;'>Qtd</th><th style='text-align:right;'>Unitário</th><th style='text-align:right;'>Total</th></tr>"
                 
+                # Exibição de itens normais do carrinho
                 for item_id, q in st.session_state.carrinho_atual.items():
                     prod = next((i for i in st.session_state.catalogo if i['id'] == item_id), None)
                     if prod:
@@ -811,6 +862,17 @@ elif modo == "Área do Cliente":
                             nome_t = f"Toalha para {prod['nome']} (Cor: {t_info['cor']})"
                             lista_pdf_itens.append({"nome": nome_t, "qtd": qtd_t, "preco": t_info['preco'], "total": tot_toalha})
                             tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0; color:#475569;'><td style='padding:8px; padding-left:25px;'>└ ➕ {nome_t}</td><td style='text-align:center;'>{qtd_t}</td><td style='text-align:right;'>R$ {t_info['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_toalha:.2f}</td></tr>"
+
+                # Exibição de guardanapos com cor customizada
+                for g_id, g_info in st.session_state.guardanapos_vinculados.items():
+                    g_prod = next((i for i in st.session_state.catalogo if i['id'] == g_id), None)
+                    if g_prod:
+                        qtd_g = g_info['qtd']
+                        tot_g = g_info['preco'] * qtd_g
+                        subtotal_materiais += tot_g
+                        nome_g_desc = f"{g_prod['nome']} (Cor: {g_info['cor']})"
+                        lista_pdf_itens.append({"nome": nome_g_desc, "qtd": qtd_g, "preco": g_info['preco'], "total": tot_g})
+                        tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0;'><td style='padding:8px;'>{nome_g_desc}</td><td style='text-align:center;'>{qtd_g}</td><td style='text-align:right;'>R$ {g_info['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_g:.2f}</td></tr>"
 
                 tabela_itens_html += "</table>"
                 st.markdown(tabela_itens_html, unsafe_allow_html=True)
@@ -893,6 +955,7 @@ elif modo == "Área do Cliente":
                                     p['obs_dificuldade'] = obs_dificuldade
                                     p['itens'] = dict(st.session_state.carrinho_atual)
                                     p['toalhas'] = dict(st.session_state.toalhas_vinculadas)
+                                    p['guardanapos'] = dict(st.session_state.guardanapos_vinculados)
                                     p['itens_detalhe'] = lista_pdf_itens
                                     p['alerta_admin_tocado'] = False
                             st.session_state.pedido_edicao_id = None
@@ -912,6 +975,7 @@ elif modo == "Área do Cliente":
                                 "obs_dificuldade": obs_dificuldade,
                                 "itens": dict(st.session_state.carrinho_atual),
                                 "toalhas": dict(st.session_state.toalhas_vinculadas),
+                                "guardanapos": dict(st.session_state.guardanapos_vinculados),
                                 "itens_detalhe": lista_pdf_itens,
                                 "alerta_cliente_tocado": False,
                                 "alerta_admin_tocado": False
@@ -920,6 +984,7 @@ elif modo == "Área do Cliente":
                         
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
+                        st.session_state.guardanapos_vinculados = {}
                         tocar_som("sucesso")
                         st.success("🎉 Seu pedido foi enviado com sucesso e está aguardando homologação! Consulte a aba 'MEUS EVENTOS'.")
                         st.rerun()
@@ -971,7 +1036,8 @@ elif modo == "Área do Cliente":
                         with col_actions1:
                             if st.button("✏️ Editar Pedido", key=f"btn_edit_{ped['id']}"):
                                 st.session_state.carrinho_atual = dict(ped['itens'])
-                                st.session_state.toalhas_vinculadas = dict(ped['toalhas'])
+                                st.session_state.toalhas_vinculadas = dict(ped.get('toalhas', {}))
+                                st.session_state.guardanapos_vinculados = dict(ped.get('guardanapos', {}))
                                 st.session_state.pedido_edicao_id = ped['id']
                                 tocar_som("click")
                                 st.rerun()
