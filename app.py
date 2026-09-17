@@ -19,12 +19,24 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Inclusão da Logomarca na barra lateral
-st.sidebar.image("https://i.imgur.com/A1w3mI4.png", use_container_width=True)
-
-# Estilização CSS para fixar e destacar o cabeçalho de navegação (Tabs)
+# Estilização CSS para centralizar/expandir logo e fixar cabeçalho
 st.markdown("""
     <style>
+    /* Centralização e Expansão do Logo da Empresa */
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 25px;
+    }
+    .logo-container img {
+        max-width: 80%;
+        width: 450px;
+        height: auto;
+    }
+
+    /* Fixação do Menu Superior (Tabs) */
     div[data-baseweb="tab-list"] {
         position: sticky;
         top: 0;
@@ -48,6 +60,13 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
+# --- VERIFICAÇÃO DE PARÂMETROS DA URL PARA ACESSO MANUTENÇÃO/ADMIN ---
+query_params = st.query_params
+eh_admin = query_params.get("modo") == "admin"
+
+# Logomarca na Barra Lateral (se expandida)
+st.sidebar.image("https://i.imgur.com/A1w3mI4.png", use_container_width=True)
 
 # --- GERENCIAMENTO DO ARQUIVO CSV DE CATÁLOGO ---
 CSV_CATALOGO = "catalogo.csv"
@@ -347,9 +366,12 @@ def abrir_cardapio_resumido():
                     st.rerun()
             st.divider()
 
-# --- MENU LATERAL DE NAVEGAÇÃO ---
-st.sidebar.title("📌 Navegação")
-modo = st.sidebar.radio("Ir para:", ["Área do Cliente", "Meu Perfil", "Painel Administrativo"])
+# --- CONTROLE DE ROTAS E NAVEGAÇÃO ---
+if eh_admin:
+    st.sidebar.title("📌 Navegação Admin")
+    modo = st.sidebar.radio("Ir para:", ["Área do Cliente", "Meu Perfil", "Painel Administrativo"])
+else:
+    modo = "Área do Cliente"
 
 # ==========================================
 # 📱 TELA DE PERFIL DO CLIENTE
@@ -386,6 +408,13 @@ elif modo == "Área do Cliente":
     
     # TELA DE CADASTRO INICIAL
     if not st.session_state.cliente_perfil:
+        # LOGO CENTRALIZADO E EXPANDIDO
+        st.markdown("""
+        <div class="logo-container">
+            <img src="https://i.imgur.com/A1w3mI4.png" alt="Renascer Locações Logo">
+        </div>
+        """, unsafe_allow_html=True)
+
         st.markdown("""
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 6px solid #1E3A8A; margin-bottom: 20px;">
             <h2 style="color: #1E3A8A; margin-bottom: 4px; font-weight: bold; font-size: 22px;">Renascer Locações e Eventos</h2>
@@ -486,6 +515,13 @@ elif modo == "Área do Cliente":
 
     # TELA PRINCIPAL DO CLIENTE (Navegação Direta)
     else:
+        # LOGO CENTRALIZADO E EXPANDIDO
+        st.markdown("""
+        <div class="logo-container">
+            <img src="https://i.imgur.com/A1w3mI4.png" alt="Renascer Locações Logo">
+        </div>
+        """, unsafe_allow_html=True)
+
         cli = st.session_state.cliente_perfil
         
         q_total_itens = sum(st.session_state.carrinho_atual.values())
