@@ -224,39 +224,36 @@ if 'catalogo' not in st.session_state:
         {"id": 1, "categoria": "Mobiliário & Mesas", "nome": "Jogo de Mesa com 4 Cadeiras de Plástico (Branca)", "preco": 14.00, "estoque": 50, "foto": "", "tipo_mesa": "quadrada"},
         {"id": 2, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 6 Lugares (Tampão de Madeira)", "preco": 18.00, "estoque": 20, "foto": "", "tipo_mesa": "redonda"},
         {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Aparador Rústico de Madeira (2,50m)", "preco": 25.00, "estoque": 5, "foto": "", "tipo_mesa": "outro"},
-        {"id": 4, "categoria": "Mobiliário & Mesas", "nome": "Cadeira de Plástico Branca Avulsa", "preco": 2.50, "estoque": 200, "foto": ""},
-        {"id": 5, "categoria": "Mobiliário & Mesas", "nome": "Mesa Bistrô Alta de Madeira", "preco": 20.00, "estoque": 15, "foto": ""},
-        {"id": 6, "categoria": "Mobiliário & Mesas", "nome": "Banqueta Alta para Bistrô", "preco": 5.00, "estoque": 40, "foto": ""},
-        
+        {"id": 4, "categoria": "Mobiliário & Mesas", "nome": "Cadeira de Plástico Branca Avulsa", "preco": 3.00, "estoque": 200, "foto": ""},
+             
         # Toalhas & Enxoval
         {"id": 7, "categoria": "Toalhas & Enxoval", "nome": "Toalha Quadrada para Mesa (1,50m x 1,50m)", "preco": 6.00, "estoque": 100, "foto": "", "tipo_toalha": "quadrada"},
         {"id": 8, "categoria": "Toalhas & Enxoval", "nome": "Toalha Redonda para Mesa 6 e 7 Lugares", "preco": 12.00, "estoque": 80, "foto": "", "tipo_toalha": "redonda"},
-        {"id": 9, "categoria": "Toalhas & Enxoval", "nome": "Cobre-Munch / Cobre-Mesa Colorido", "preco": 3.50, "estoque": 120, "foto": ""},
-        {"id": 10, "categoria": "Toalhas & Enxoval", "nome": "Guardanapo de Tecido (Diversas Cores)", "preco": 1.50, "estoque": 300, "foto": ""},
+        {"id": 9, "categoria": "Toalhas & Enxoval", "nome": "Cobre-Mancha / Cobre-Mesa Colorido", "preco": 6.00, "estoque": 120, "foto": ""},
+        {"id": 10, "categoria": "Toalhas & Enxoval", "nome": "Guardanapo de Tecido (Diversas Cores)", "preco": 1.00, "estoque": 300, "foto": ""},
         
         # Louças & Copos
         {"id": 11, "categoria": "Louças & Copos", "nome": "Prato de Jantar Raso Branco Liso", "preco": 0.80, "estoque": 300, "foto": ""},
-        {"id": 12, "categoria": "Louças & Copos", "nome": "Prato de Sobremesa Branco Liso", "preco": 0.70, "estoque": 250, "foto": ""},
+        {"id": 12, "categoria": "Louças & Copos", "nome": "Prato de Sobremesa Branco Liso", "preco": 0.80, "estoque": 250, "foto": ""},
         {"id": 13, "categoria": "Louças & Copos", "nome": "Taça para Água / Vinho Transparente", "preco": 1.00, "estoque": 200, "foto": ""},
         {"id": 14, "categoria": "Louças & Copos", "nome": "Taça de Cerveja / Chope (300ml)", "preco": 1.00, "estoque": 200, "foto": ""},
-        {"id": 15, "categoria": "Louças & Copos", "nome": "Copo Americano / Multiuso", "preco": 0.60, "estoque": 300, "foto": ""},
-        {"id": 16, "categoria": "Louças & Copos", "nome": "Garfo de Jantar Inox", "preco": 0.50, "estoque": 400, "foto": ""},
-        {"id": 17, "categoria": "Louças & Copos", "nome": "Faca de Jantar Inox", "preco": 0.50, "estoque": 400, "foto": ""},
-        {"id": 18, "categoria": "Louças & Copos", "nome": "Colher de Sobremesa Inox", "preco": 0.50, "estoque": 300, "foto": ""},
+        {"id": 15, "categoria": "Louças & Copos", "nome": "Copo Americano / Multiuso", "preco": 0.80, "estoque": 300, "foto": ""},
+        {"id": 16, "categoria": "Louças & Copos", "nome": "Garfo de Jantar Inox", "preco": 0.80, "estoque": 400, "foto": ""},
+        {"id": 17, "categoria": "Louças & Copos", "nome": "Faca de Jantar Inox", "preco": 0.80, "estoque": 400, "foto": ""},
+        {"id": 18, "categoria": "Louças & Copos", "nome": "Colher de Sobremesa Inox", "preco": 0.80, "estoque": 300, "foto": ""},
         
         # Serviço & Rechauds
         {"id": 19, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Redondo Banho-Maria", "preco": 25.00, "estoque": 10, "foto": ""},
-        {"id": 20, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Retangular Duplo", "preco": 35.00, "estoque": 8, "foto": ""},
-        {"id": 21, "categoria": "Serviço & Rechauds", "nome": "Suqueira de Vidro com Torneira (5 Litros)", "preco": 15.00, "estoque": 12, "foto": ""},
-        {"id": 22, "categoria": "Serviço & Rechauds", "nome": "Saladeira / Travesa de Inox", "preco": 5.00, "estoque": 20, "foto": ""},
-        {"id": 23, "categoria": "Serviço & Rechauds", "nome": "Pegador de Salada / Carne Inox", "preco": 2.00, "estoque": 30, "foto": ""},
-        {"id": 24, "categoria": "Serviço & Rechauds", "nome": "Concha para Molho / Sopa Inox", "preco": 2.00, "estoque": 25, "foto": ""},
+        {"id": 20, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Retangular Duplo", "preco": 40.00, "estoque": 8, "foto": ""},
+        {"id": 21, "categoria": "Serviço & Rechauds", "nome": "Suqueira de Vidro com Torneira (5 Litros)", "preco": 25.00, "estoque": 12, "foto": ""},
+        {"id": 22, "categoria": "Serviço & Rechauds", "nome": "Saladeira / Travesa de Inox", "preco": 15.00, "estoque": 20, "foto": ""},
+        {"id": 23, "categoria": "Serviço & Rechauds", "nome": "Pegador de Salada / Carne Inox", "preco": 3.00, "estoque": 30, "foto": ""},
+        {"id": 24, "categoria": "Serviço & Rechauds", "nome": "Concha para Molho / Sopa Inox", "preco": 5.00, "estoque": 25, "foto": ""},
         
         # Equipamentos & Freezers
         {"id": 25, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal 2 Tampas (400 Litros)", "preco": 200.00, "estoque": 3, "foto": ""},
-        {"id": 26, "categoria": "Equipamentos & Freezers", "nome": "Freezer Vertical Expositor", "preco": 220.00, "estoque": 2, "foto": ""},
-        {"id": 27, "categoria": "Equipamentos & Freezers", "nome": "Caixa Térmica Grande (100 Litros)", "preco": 30.00, "estoque": 10, "foto": ""},
-        {"id": 28, "categoria": "Equipamentos & Freezers", "nome": "Tina Térmica para Bebidas (Madeira/Plástico)", "preco": 25.00, "estoque": 8, "foto": ""}
+        {"id": 26, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal 2 Tampas (500 Litros)", "preco": 250.00, "estoque": 2, "foto": ""},
+        {"id": 28, "categoria": "Equipamentos & Freezers", "nome": "Tina Térmica para Bebidas (Madeira/Plástico)", "preco": 10.00, "estoque": 8, "foto": ""}
     ]
 
 if 'cliente_perfil' not in st.session_state:
