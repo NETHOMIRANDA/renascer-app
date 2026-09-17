@@ -102,10 +102,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- VERIFICAÇÃO DE PARÂMETROS DA URL ---
-query_params = st.query_params
-eh_admin = query_params.get("modo") == "admin"
-
 # --- GERENCIAMENTO DO ARQUIVO CSV DE CATÁLOGO ---
 CSV_CATALOGO = "catalogo.csv"
 PASTA_PDF = r"C:\Users\netho\OneDrive\Desktop\Modelo 02 - Copia\PDF"
@@ -210,6 +206,8 @@ def tocar_som(tipo="click"):
         audio_url = "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"
     elif tipo == "homologado":
         audio_url = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+    elif tipo == "novo_pedido":
+        audio_url = "https://assets.mixkit.co/active_storage/sfx/1000/1000-preview.mp3"
     st.components.v1.html(f'<audio autoplay style="display:none;"><source src="{audio_url}" type="audio/mpeg"></audio>', height=0, width=0)
 
 # --- GERADOR DE PDF FORMAL E CONTRATO DE LOCAÇÃO ---
@@ -377,6 +375,9 @@ if 'pedido_edicao_id' not in st.session_state:
 if 'termo_busca' not in st.session_state:
     st.session_state.termo_busca = ""
 
+if 'eh_admin' not in st.session_state:
+    st.session_state.eh_admin = False
+
 # --- CABEÇALHO / HERO BANNER DA EMPRESA (CENTRALIZADO & ESTENDIDO) ---
 st.markdown("""
 <div class="hero-container">
@@ -409,7 +410,7 @@ def abrir_cardapio_resumido():
             st.divider()
 
 # --- CONTROLE DE ROTAS E NAVEGAÇÃO ---
-if eh_admin:
+if st.session_state.eh_admin:
     st.sidebar.title("📌 Navegação Admin")
     modo = st.sidebar.radio("Ir para:", ["Área do Cliente", "Meu Perfil", "Painel Administrativo"])
 else:
@@ -561,12 +562,14 @@ elif modo == "Área do Cliente":
         </div>
         """, unsafe_allow_html=True)
 
-        pedidos_homologados_recentes = [p for p in st.session_state.pedidos_standby if p.get('status') == 'Homologado (Disponibilidade Confirmada)' and p.get('alerta_tocado') != True]
+        # ALERTAS SONOROS AUTOMÁTICOS PARA O CLIENTE
+        pedidos_homologados_recentes = [p for p in st.session_state.pedidos_standby if p['cliente']['telefone'] == cli['telefone'] and p.get('status') == 'Homologado (Disponibilidade Confirmada)' and p.get('alerta_cliente_tocado') != True]
         if pedidos_homologados_recentes:
             for p_h in pedidos_homologados_recentes:
-                st.success(f"🎉 Boas notícias! Seu pedido para **'{p_h['evento']}'** foi aprovado e o estoque está reservado para você!")
+                st.balloons()
+                st.success(f"🎉 Boas notícias! Seu pedido para **'{p_h['evento']}'** foi HOMOLOGADO! O pagamento via Pix já está liberado.")
                 tocar_som("homologado")
-                p_h['alerta_tocado'] = True
+                p_h['alerta_cliente_tocado'] = True
 
         if st.session_state.pedido_edicao_id:
             st.warning(f"📝 Você está editando o Pedido ID #{st.session_state.pedido_edicao_id}. As alterações serão salvas ao finalizar.")
@@ -806,7 +809,7 @@ elif modo == "Área do Cliente":
 
                 pdf_bytes = gerar_pdf_orcamento(
                     cli, "Orçamento Formal", str(data_festa), end_rua_festa,
-                    lista_pdf_itens, subtotal_materiais, val_frete, taxa_dificuldade, valor_total_bruto, "Rascunho de Orçamento", obs_dificuldade
+                    lista_pdf_itens, subtotal_materiais, val_frete, taxa_dificuldade, valor_total_bruto, "Aguardando Homologação", obs_dificuldade
                 )
                 st.download_button(
                     label="📄 Baixar Cópia Formal em PDF",
@@ -849,6 +852,7 @@ elif modo == "Área do Cliente":
                                     p['itens'] = dict(st.session_state.carrinho_atual)
                                     p['toalhas'] = dict(st.session_state.toalhas_vinculadas)
                                     p['itens_detalhe'] = lista_pdf_itens
+                                    p['alerta_admin_tocado'] = False
                             st.session_state.pedido_edicao_id = None
                         else:
                             novo_id = len(st.session_state.pedidos_standby) + 1
@@ -867,7 +871,8 @@ elif modo == "Área do Cliente":
                                 "itens": dict(st.session_state.carrinho_atual),
                                 "toalhas": dict(st.session_state.toalhas_vinculadas),
                                 "itens_detalhe": lista_pdf_itens,
-                                "alerta_tocado": False
+                                "alerta_cliente_tocado": False,
+                                "alerta_admin_tocado": False
                             }
                             st.session_state.pedidos_standby.append(novo_stb)
                         
@@ -887,7 +892,10 @@ elif modo == "Área do Cliente":
                 st.info("Você ainda não possui eventos gravados em seu histórico.")
             else:
                 for ped in meus_pedidos:
-                    with st.expander(f"🎉 {ped['evento']} — Data: {ped['data']} (Status: {ped['status']})"):
+                    eh_homologado = ped['status'] == 'Homologado (Disponibilidade Confirmada)'
+                    cor_status = "green" if eh_homologado else "orange"
+                    
+                    with st.expander(f"🎉 {ped['evento']} — Data: {ped['data']} (Status: :{cor_status}[{ped['status']}])"):
                         st.write(f"**Endereço:** {ped['endereco']}")
                         st.write(f"**Valor Total:** R$ {ped['total']:.2f} (Materiais: R$ {ped['subtotal']:.2f} | Frete: R$ {ped['frete']:.2f} | Dificuldade: R$ {ped.get('taxa_dificuldade', 0.0):.2f})")
                         if ped.get('obs_dificuldade'):
@@ -897,6 +905,26 @@ elif modo == "Área do Cliente":
                         for item_det in ped['itens_detalhe']:
                             st.write(f"- {item_det['qtd']}x {item_det['nome']} (R$ {item_det['total']:.2f})")
                         
+                        st.divider()
+
+                        # --- ÁREA DE PAGAMENTO PIX (SÓ É LIBERADA APÓS HOMOLOGAÇÃO) ---
+                        if eh_homologado:
+                            st.markdown("### 💳 Pagamento Liberado via PIX")
+                            st.success("Estoque reservado com sucesso! Realize o pagamento para confirmar seu pedido.")
+                            
+                            col_qr, col_pix = st.columns([1, 2])
+                            with col_qr:
+                                # QR Code Dinâmico / Ilustrativo do Pix
+                                st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=00020126580014BR.GOV.BCB.PIX0136629822404345204000053039865405{ped['total']:.2f}5802BR5923RENASCER%20LOCACOES6007GOIANIA62070503***6304", width=180)
+                            with col_pix:
+                                st.markdown("**Chave PIX (Telefone):** `62982240434`")
+                                st.markdown("**Favorecido:** Renascer Locações & Eventos")
+                                st.markdown(f"**Valor a Pagar:** `R$ {ped['total']:.2f}`")
+                                st.info("Após efetuar o pagamento, envie o comprovante para o nosso WhatsApp: (62) 98224-0434")
+                        else:
+                            st.warning("⏳ **Pagamento Bloqueado:** Aguardando homologação e conferência de estoque por nossa equipe. Assim que homologado, o QR Code e chave PIX serão disponibilizados nesta aba.")
+
+                        st.divider()
                         col_actions1, col_actions2 = st.columns(2)
                         
                         with col_actions1:
@@ -923,213 +951,222 @@ elif modo == "Área do Cliente":
 # ==========================================
 # 🛠️ PAINEL ADMINISTRATIVO (GESTAO RENASCER)
 # ==========================================
-elif modo == "Painel Administrativo":
-    st.title("🛠️ Painel Administrativo")
+elif modo == "Painel Administrativo" and st.session_state.eh_admin:
+    st.title("🛠️ Painel Administrativo de Homologação")
+
+    # SOM DE ALERTA PARA O ADMIN CASO HAJA NOVO PEDIDO PENDENTE
+    novos_pedidos_pendentes = [p for p in st.session_state.pedidos_standby if p['status'] == 'Aguardando Homologação' and p.get('alerta_admin_tocado') != True]
+    if novos_pedidos_pendentes:
+        tocar_som("novo_pedido")
+        st.toast("🚨 Novo pedido aguardando homologação!", icon="🔔")
+        for p_p in novos_pedidos_pendentes:
+            p_p['alerta_admin_tocado'] = True
     
-    # --- SISTEMA DE AUTENTICAÇÃO POR SENHA ---
-    senha_correta = "renascer123"
-    senha_input = st.text_input("Digite a senha do administrador para acessar o painel:", type="password", key="input_senha_admin")
+    tab_admin_pedidos, tab_impressao_rapida, tab_relatorio_entrega, tab_relatorio_financeiro, tab_admin_catalogo = st.tabs([
+        "📥 Gerenciar Pedidos / Homologação",
+        "🖨️ Impressão Rápida em Lote",
+        "🚚 Relatório de Entregas por Período",
+        "📊 Relatório Financeiro por Período",
+        "📦 Gerenciar Catálogo e Estoque"
+    ])
     
-    if senha_input == senha_correta:
-        st.success("Acesso autorizado com sucesso!")
+    # TAB ADMINISTRATIVA 1: GERENCIAR PEDIDOS
+    with tab_admin_pedidos:
+        st.subheader("Pedidos Recebidos para Homologação")
         
-        tab_admin_pedidos, tab_impressao_rapida, tab_relatorio_entrega, tab_relatorio_financeiro, tab_admin_catalogo = st.tabs([
-            "📥 Gerenciar Pedidos / Homologação",
-            "🖨️ Impressão Rápida em Lote",
-            "🚚 Relatório de Entregas por Período",
-            "📊 Relatório Financeiro por Período",
-            "📦 Gerenciar Catálogo e Estoque"
-        ])
-        
-        # TAB ADMINISTRATIVA 1: GERENCIAR PEDIDOS
-        with tab_admin_pedidos:
-            st.subheader("Pedidos Recebidos")
-            
-            if not st.session_state.pedidos_standby:
-                st.info("Nenhum pedido registrado no momento.")
-            else:
-                for p in st.session_state.pedidos_standby:
-                    with st.expander(f"ID #{p['id']} - {p['cliente']['nome']} - Evento: {p['evento']} ({p['status']})"):
-                        st.write(f"**Contato:** {p['cliente']['telefone']} | **Data:** {p['data']}")
-                        st.write(f"**Endereço:** {p['endereco']}")
-                        st.write(f"**Total:** R$ {p['total']:.2f} (Frete: R$ {p['frete']:.2f} | Adic. Acesso: R$ {p.get('taxa_dificuldade', 0.0):.2f})")
-                        if p.get('obs_dificuldade'):
-                            st.write(f"**Obs. Dificuldade de Acesso:** {p['obs_dificuldade']}")
+        if not st.session_state.pedidos_standby:
+            st.info("Nenhum pedido registrado no momento.")
+        else:
+            for p in st.session_state.pedidos_standby:
+                with st.expander(f"ID #{p['id']} - {p['cliente']['nome']} - Evento: {p['evento']} ({p['status']})"):
+                    st.write(f"**Contato:** {p['cliente']['telefone']} | **Data:** {p['data']}")
+                    st.write(f"**Endereço:** {p['endereco']}")
+                    st.write(f"**Total:** R$ {p['total']:.2f} (Frete: R$ {p['frete']:.2f} | Adic. Acesso: R$ {p.get('taxa_dificuldade', 0.0):.2f})")
+                    if p.get('obs_dificuldade'):
+                        st.write(f"**Obs. Dificuldade de Acesso:** {p['obs_dificuldade']}")
+                    
+                    st.markdown("**Itens:**")
+                    for it in p['itens_detalhe']:
+                        st.write(f"- {it['qtd']}x {it['nome']}")
                         
-                        st.markdown("**Itens:**")
-                        for it in p['itens_detalhe']:
-                            st.write(f"- {it['qtd']}x {it['nome']}")
-                            
-                        if p['status'] != 'Homologado (Disponibilidade Confirmada)':
-                            if st.button("✅ Homologar Pedido (Confirmar Estoque)", key=f"btn_homologar_{p['id']}"):
-                                p['status'] = 'Homologado (Disponibilidade Confirmada)'
-                                tocar_som("homologado")
-                                st.success(f"Pedido #{p['id']} Homologado com Sucesso!")
-                                st.rerun()
+                    if p['status'] != 'Homologado (Disponibilidade Confirmada)':
+                        if st.button("✅ Homologar Pedido (Liberar Pagamento/Pix)", key=f"btn_homologar_{p['id']}"):
+                            p['status'] = 'Homologado (Disponibilidade Confirmada)'
+                            tocar_som("homologado")
+                            st.success(f"Pedido #{p['id']} Homologado com Sucesso! Pagamento PIX Liberado para o Cliente.")
+                            st.rerun()
 
-        # TAB ADMINISTRATIVA 2: IMPRESSÃO RÁPIDA EM LOTE
-        with tab_impressao_rapida:
-            st.subheader("🖨️ Seleção e Impressão Rápida de Pedidos")
-            st.caption("Marque as caixas dos pedidos que deseja gerar em PDF:")
-            
-            if not st.session_state.pedidos_standby:
-                st.info("Não existem pedidos no sistema para seleção.")
-            else:
-                pedidos_selecionados = []
-                for p in st.session_state.pedidos_standby:
-                    col_chk, col_info = st.columns([1, 10])
-                    with col_chk:
-                        marcado = st.checkbox("", key=f"chk_imp_lote_{p['id']}")
-                        if marcado:
-                            pedidos_selecionados.append(p)
-                    with col_info:
-                        st.write(f"**ID #{p['id']}** — Cliente: {p['cliente']['nome']} | Evento: {p['evento']} | Data: {p['data']} | Status: {p['status']}")
-                    st.divider()
-
-                if st.button("📄 Gerar e Baixar PDFs Selecionados em Lote", use_container_width=True):
-                    if not pedidos_selecionados:
-                        st.warning("Por favor, selecione ao menos um pedido para gerar o PDF.")
-                    else:
-                        for p_sel in pedidos_selecionados:
-                            pdf_gen = gerar_pdf_orcamento(
-                                p_sel['cliente'], p_sel['evento'], p_sel['data'], p_sel['endereco'],
-                                p_sel['itens_detalhe'], p_sel['subtotal'], p_sel['frete'], p_sel.get('taxa_dificuldade', 0.0),
-                                p_sel['total'], p_sel['status'], p_sel.get('obs_dificuldade', "")
-                            )
-                        st.success(f"🎉 {len(pedidos_selecionados)} PDF(s) gerado(s) e gravado(s) na pasta: `{PASTA_PDF}`")
-
-        # TAB ADMINISTRATIVA 3: RELATÓRIO DE ENTREGAS
-        with tab_relatorio_entrega:
-            st.subheader("🚚 Relatório de Entregas por Período Personalizado")
-            
-            col_dt_e1, col_dt_e2 = st.columns(2)
-            with col_dt_e1:
-                dt_inicio_e = st.date_input("Data de Início das Entregas:", value=datetime.today(), key="dt_ini_entregas")
-            with col_dt_e2:
-                dt_fim_e = st.date_input("Data de Fim das Entregas:", value=datetime.today(), key="dt_fim_entregas")
-
-            pedidos_no_periodo = []
+    # TAB ADMINISTRATIVA 2: IMPRESSÃO RÁPIDA EM LOTE
+    with tab_impressao_rapida:
+        st.subheader("🖨️ Seleção e Impressão Rápida de Pedidos")
+        st.caption("Marque as caixas dos pedidos que deseja gerar em PDF:")
+        
+        if not st.session_state.pedidos_standby:
+            st.info("Não existem pedidos no sistema para seleção.")
+        else:
+            pedidos_selecionados = []
             for p in st.session_state.pedidos_standby:
-                try:
-                    dt_p = datetime.strptime(p['data'], "%Y-%m-%d").date()
-                    if dt_inicio_e <= dt_p <= dt_fim_e:
-                        pedidos_no_periodo.append(p)
-                except Exception:
-                    pass
+                col_chk, col_info = st.columns([1, 10])
+                with col_chk:
+                    marcado = st.checkbox("", key=f"chk_imp_lote_{p['id']}")
+                    if marcado:
+                        pedidos_selecionados.append(p)
+                with col_info:
+                    st.write(f"**ID #{p['id']}** — Cliente: {p['cliente']['nome']} | Evento: {p['evento']} | Data: {p['data']} | Status: {p['status']}")
+                st.divider()
 
-            st.markdown(f"### Entregas Agendadas ({dt_inicio_e.strftime('%d/%m/%Y')} até {dt_fim_e.strftime('%d/%m/%Y')}):")
-            if not pedidos_no_periodo:
-                st.info("Nenhuma entrega agendada para o período selecionado.")
-            else:
-                for p_e in pedidos_no_periodo:
-                    st.markdown(f"📍 **Data: {p_e['data']}** | Cliente: {p_e['cliente']['nome']} (Tel: {p_e['cliente']['telefone']})")
-                    st.write(f"Endereço: {p_e['endereco']}")
-                    st.write(f"Observações de Acesso: {p_e.get('obs_dificuldade', 'Sem restrições')}")
-                    st.divider()
+            if st.button("📄 Gerar e Baixar PDFs Selecionados em Lote", use_container_width=True):
+                if not pedidos_selecionados:
+                    st.warning("Por favor, selecione ao menos um pedido para gerar o PDF.")
+                else:
+                    for p_sel in pedidos_selecionados:
+                        pdf_gen = gerar_pdf_orcamento(
+                            p_sel['cliente'], p_sel['evento'], p_sel['data'], p_sel['endereco'],
+                            p_sel['itens_detalhe'], p_sel['subtotal'], p_sel['frete'], p_sel.get('taxa_dificuldade', 0.0),
+                            p_sel['total'], p_sel['status'], p_sel.get('obs_dificuldade', "")
+                        )
+                    st.success(f"🎉 {len(pedidos_selecionados)} PDF(s) gerado(s) e gravado(s) na pasta: `{PASTA_PDF}`")
 
-        # TAB ADMINISTRATIVA 4: RELATÓRIO FINANCEIRO
-        with tab_relatorio_financeiro:
-            st.subheader("📊 Relatório Financeiro Personalizado (Faturamento)")
+    # TAB ADMINISTRATIVA 3: RELATÓRIO DE ENTREGAS
+    with tab_relatorio_entrega:
+        st.subheader("🚚 Relatório de Entregas por Período Personalizado")
+        
+        col_dt_e1, col_dt_e2 = st.columns(2)
+        with col_dt_e1:
+            dt_inicio_e = st.date_input("Data de Início das Entregas:", value=datetime.today(), key="dt_ini_entregas")
+        with col_dt_e2:
+            dt_fim_e = st.date_input("Data de Fim das Entregas:", value=datetime.today(), key="dt_fim_entregas")
+
+        pedidos_no_periodo = []
+        for p in st.session_state.pedidos_standby:
+            try:
+                dt_p = datetime.strptime(p['data'], "%Y-%m-%d").date()
+                if dt_inicio_e <= dt_p <= dt_fim_e:
+                    pedidos_no_periodo.append(p)
+            except Exception:
+                pass
+
+        st.markdown(f"### Entregas Agendadas ({dt_inicio_e.strftime('%d/%m/%Y')} até {dt_fim_e.strftime('%d/%m/%Y')}):")
+        if not pedidos_no_periodo:
+            st.info("Nenhuma entrega agendada para o período selecionado.")
+        else:
+            for p_e in pedidos_no_periodo:
+                st.markdown(f"📍 **Data: {p_e['data']}** | Cliente: {p_e['cliente']['nome']} (Tel: {p_e['cliente']['telefone']})")
+                st.write(f"Endereço: {p_e['endereco']}")
+                st.write(f"Observações de Acesso: {p_e.get('obs_dificuldade', 'Sem restrições')}")
+                st.divider()
+
+    # TAB ADMINISTRATIVA 4: RELATÓRIO FINANCEIRO
+    with tab_relatorio_financeiro:
+        st.subheader("📊 Relatório Financeiro Personalizado (Faturamento)")
+        
+        col_dt_f1, col_dt_f2 = st.columns(2)
+        with col_dt_f1:
+            dt_inicio_f = st.date_input("Data Inicial:", value=datetime.today(), key="dt_ini_fin")
+        with col_dt_f2:
+            dt_fim_f = st.date_input("Data Final:", value=datetime.today(), key="dt_fim_fin")
+
+        total_materiais = 0.0
+        total_frete = 0.0
+        total_dificuldade = 0.0
+        total_geral = 0.0
+        qtd_pedidos = 0
+
+        for p in st.session_state.pedidos_standby:
+            try:
+                dt_p = datetime.strptime(p['data'], "%Y-%m-%d").date()
+                if dt_inicio_f <= dt_p <= dt_fim_f:
+                    total_materiais += p.get('subtotal', 0.0)
+                    total_frete += p.get('frete', 0.0)
+                    total_dificuldade += p.get('taxa_dificuldade', 0.0)
+                    total_geral += p.get('total', 0.0)
+                    qtd_pedidos += 1
+            except Exception:
+                pass
+
+        st.markdown(f"### Balanço do Período ({dt_inicio_f.strftime('%d/%m/%Y')} a {dt_fim_f.strftime('%d/%m/%Y')}):")
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        col_m1.metric("Pedidos Totais", f"{qtd_pedidos}")
+        col_m2.metric("Subtotal Materiais", f"R$ {total_materiais:.2f}")
+        col_m3.metric("Total Fretes", f"R$ {total_frete:.2f}")
+        col_m4.metric("Faturamento Geral", f"R$ {total_geral:.2f}")
+
+    # TAB ADMINISTRATIVA 5: GERENCIAR CATÁLOGO E ESTOQUE
+    with tab_admin_catalogo:
+        st.subheader("📦 Catálogo de Produtos e Gestão de Estoque")
+        st.caption("Edite os valores diretamente na tabela ou selecione uma linha e pressione 'Delete' para excluir o item do catálogo.")
+        
+        df_cat = pd.DataFrame(st.session_state.catalogo)
+        
+        df_editado = st.data_editor(
+            df_cat,
+            num_rows="dynamic",
+            column_config={
+                "id": st.column_config.NumberColumn("ID", disabled=True),
+                "nome": st.column_config.TextColumn("Nome do Item", required=True),
+                "categoria": st.column_config.SelectboxColumn("Categoria", options=["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"]),
+                "preco": st.column_config.NumberColumn("Preço (R$)", format="R$ %.2f"),
+                "estoque": st.column_config.NumberColumn("Estoque", min_value=0),
+                "foto": st.column_config.TextColumn("URL da Foto / Caminho")
+            },
+            hide_index=True,
+            use_container_width=True,
+            key="editor_catalogo_admin"
+        )
+        
+        col_salvar, col_espaco = st.columns([1, 3])
+        with col_salvar:
+            if st.button("💾 Salvar Alterações / Exclusões no Catálogo", use_container_width=True):
+                novos_dados = df_editado.to_dict(orient="records")
+                st.session_state.catalogo = novos_dados
+                salvar_catalogo_csv(novos_dados)
+                tocar_som("sucesso")
+                st.success("Catálogo e estoque gravados permanentemente com sucesso!")
+                st.rerun()
+
+        st.markdown("---")
+        st.subheader("➕ Adicionar Novo Item ao Catálogo")
+        with st.form("form_add_catalogo"):
+            novo_nome = st.text_input("Nome do Material")
+            nova_cat = st.selectbox("Categoria", ["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"])
+            novo_preco = st.number_input("Preço da Diária (R$)", min_value=0.0, value=10.0, step=0.50)
+            novo_estq = st.number_input("Quantidade em Estoque", min_value=1, value=50)
+            nova_foto = st.text_input("URL/Caminho da Foto (deixe em branco se não houver)", value="")
             
-            col_dt_f1, col_dt_f2 = st.columns(2)
-            with col_dt_f1:
-                dt_inicio_f = st.date_input("Data Inicial:", value=datetime.today(), key="dt_ini_fin")
-            with col_dt_f2:
-                dt_fim_f = st.date_input("Data Final:", value=datetime.today(), key="dt_fim_fin")
-
-            total_materiais = 0.0
-            total_frete = 0.0
-            total_dificuldade = 0.0
-            total_geral = 0.0
-            qtd_pedidos = 0
-
-            for p in st.session_state.pedidos_standby:
-                try:
-                    dt_p = datetime.strptime(p['data'], "%Y-%m-%d").date()
-                    if dt_inicio_f <= dt_p <= dt_fim_f:
-                        total_materiais += p.get('subtotal', 0.0)
-                        total_frete += p.get('frete', 0.0)
-                        total_dificuldade += p.get('taxa_dificuldade', 0.0)
-                        total_geral += p.get('total', 0.0)
-                        qtd_pedidos += 1
-                except Exception:
-                    pass
-
-            st.markdown(f"### Balanço do Período ({dt_inicio_f.strftime('%d/%m/%Y')} a {dt_fim_f.strftime('%d/%m/%Y')}):")
-            col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-            col_m1.metric("Pedidos Totais", f"{qtd_pedidos}")
-            col_m2.metric("Subtotal Materiais", f"R$ {total_materiais:.2f}")
-            col_m3.metric("Total Fretes", f"R$ {total_frete:.2f}")
-            col_m4.metric("Faturamento Geral", f"R$ {total_geral:.2f}")
-
-        # TAB ADMINISTRATIVA 5: GERENCIAR CATÁLOGO E ESTOQUE
-        with tab_admin_catalogo:
-            st.subheader("📦 Catálogo de Produtos e Gestão de Estoque")
-            st.caption("Edite os valores diretamente na tabela ou selecione uma linha e pressione 'Delete' para excluir o item do catálogo.")
-            
-            df_cat = pd.DataFrame(st.session_state.catalogo)
-            
-            df_editado = st.data_editor(
-                df_cat,
-                num_rows="dynamic",
-                column_config={
-                    "id": st.column_config.NumberColumn("ID", disabled=True),
-                    "nome": st.column_config.TextColumn("Nome do Item", required=True),
-                    "categoria": st.column_config.SelectboxColumn("Categoria", options=["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"]),
-                    "preco": st.column_config.NumberColumn("Preço (R$)", format="R$ %.2f"),
-                    "estoque": st.column_config.NumberColumn("Estoque", min_value=0),
-                    "foto": st.column_config.TextColumn("URL da Foto / Caminho")
-                },
-                hide_index=True,
-                use_container_width=True,
-                key="editor_catalogo_admin"
-            )
-            
-            col_salvar, col_espaco = st.columns([1, 3])
-            with col_salvar:
-                if st.button("💾 Salvar Alterações / Exclusões no Catálogo", use_container_width=True):
-                    novos_dados = df_editado.to_dict(orient="records")
-                    st.session_state.catalogo = novos_dados
-                    salvar_catalogo_csv(novos_dados)
+            if st.form_submit_button("➕ Cadastrar Item no Catálogo"):
+                if novo_nome:
+                    novo_id = max([int(i['id']) for i in st.session_state.catalogo], default=0) + 1
+                    novo_item = {
+                        "id": novo_id, "categoria": nova_cat, "nome": novo_nome,
+                        "preco": novo_preco, "estoque": novo_estq, "foto": nova_foto,
+                        "tipo_mesa": "None", "tipo_toalha": "None"
+                    }
+                    st.session_state.catalogo.append(novo_item)
+                    salvar_catalogo_csv(st.session_state.catalogo)
                     tocar_som("sucesso")
-                    st.success("Catálogo e estoque gravados permanentemente com sucesso!")
+                    st.success(f"Item '{novo_nome}' adicionado com sucesso!")
                     st.rerun()
 
-            st.markdown("---")
-            st.subheader("➕ Adicionar Novo Item ao Catálogo")
-            with st.form("form_add_catalogo"):
-                novo_nome = st.text_input("Nome do Material")
-                nova_cat = st.selectbox("Categoria", ["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"])
-                novo_preco = st.number_input("Preço da Diária (R$)", min_value=0.0, value=10.0, step=0.50)
-                novo_estq = st.number_input("Quantidade em Estoque", min_value=1, value=50)
-                nova_foto = st.text_input("URL/Caminho da Foto (deixe em branco se não houver)", value="")
-                
-                if st.form_submit_button("➕ Cadastrar Item no Catálogo"):
-                    if novo_nome:
-                        novo_id = max([int(i['id']) for i in st.session_state.catalogo], default=0) + 1
-                        novo_item = {
-                            "id": novo_id, "categoria": nova_cat, "nome": novo_nome,
-                            "preco": novo_preco, "estoque": novo_estq, "foto": nova_foto,
-                            "tipo_mesa": "None", "tipo_toalha": "None"
-                        }
-                        st.session_state.catalogo.append(novo_item)
-                        salvar_catalogo_csv(st.session_state.catalogo)
-                        tocar_som("sucesso")
-                        st.success(f"Item '{novo_nome}' adicionado com sucesso!")
-                        st.rerun()
-
-    elif senha_input != "":
-        st.error("Senha incorreta! Acesso negado ao painel de administração.")
-
-# --- BOTÃO ÚNICO E DISCRETO PARA SAIR (RODAPÉ) ---
+# --- CAMPO DISCRETO NO RODAPÉ PARA ACESSO DO ADMINISTRADOR ---
 st.markdown('<div class="btn-sair-container">', unsafe_allow_html=True)
-col_v1, col_btn_sair, col_v2 = st.columns([5, 2, 5])
-with col_btn_sair:
-    if st.button("🚪 Sair do Aplicativo", key="btn_sair_app_rodape", use_container_width=True):
-        st.session_state.cliente_perfil = None
-        st.session_state.carrinho_atual = {}
-        st.session_state.toalhas_vinculadas = {}
-        st.session_state.pedido_edicao_id = None
-        st.session_state.termo_busca = ""
-        st.rerun()
+col_rod1, col_rod2, col_rod3 = st.columns([1, 2, 1])
+
+with col_rod2:
+    with st.expander("🔐 Acesso Restrito / Área Administrativa"):
+        if not st.session_state.eh_admin:
+            senha_admin_input = st.text_input("Senha Admin:", type="password", key="pwd_disc_admin")
+            if st.button("Entrar no Modo Admin", use_container_width=True):
+                if senha_admin_input == "renascer@2026":
+                    st.session_state.eh_admin = True
+                    tocar_som("sucesso")
+                    st.success("Modo Administrador ativado!")
+                    st.rerun()
+                else:
+                    st.error("Senha incorreta.")
+        else:
+            st.success("Você está logado como Administrador.")
+            if st.button("Sair do Modo Admin", use_container_width=True):
+                st.session_state.eh_admin = False
+                st.rerun()
+
 st.markdown('</div>', unsafe_allow_html=True)
