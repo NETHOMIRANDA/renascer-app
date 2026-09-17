@@ -18,7 +18,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Inclusão da Logomarca na barra lateral
 st.sidebar.image("https://i.imgur.com/A1w3mI4.png", use_container_width=True)
+
 # Estilização CSS para fixar e destacar o cabeçalho de navegação (Tabs)
 st.markdown("""
     <style>
@@ -48,6 +51,7 @@ st.markdown("""
 
 # --- GERENCIAMENTO DO ARQUIVO CSV DE CATÁLOGO ---
 CSV_CATALOGO = "catalogo.csv"
+PASTA_PDF = r"C:\Users\netho\OneDrive\Desktop\Modelo 02 - Copia\PDF"
 
 CATALOGO_PADRAO = [
     # Mobiliário & Mesas
@@ -102,6 +106,16 @@ def salvar_catalogo_csv(lista_itens):
     df = pd.DataFrame(lista_itens)
     df.to_csv(CSV_CATALOGO, index=False)
 
+def salvar_pdf_localmente(buffer_pdf, nome_arquivo):
+    try:
+        if not os.path.exists(PASTA_PDF):
+            os.makedirs(PASTA_PDF)
+        caminho_completo = os.path.join(PASTA_PDF, nome_arquivo)
+        with open(caminho_completo, "wb") as f:
+            f.write(buffer_pdf.getvalue())
+    except Exception as e:
+        st.warning(f"Não foi possível salvar a cópia local do PDF em '{PASTA_PDF}': {e}")
+
 # --- CONSULTA E VALIDAÇÃO DE CEP VIA VIACEP ---
 def consultar_cep(cep):
     clean_cep = str(cep).replace("-", "").replace(".", "").strip()
@@ -141,7 +155,7 @@ def tocar_som(tipo="click"):
         audio_url = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
     st.components.v1.html(f'<audio autoplay style="display:none;"><source src="{audio_url}" type="audio/mpeg"></audio>', height=0, width=0)
 
-# --- GERADOR DE PDF FORMAL ---
+# --- GERADOR DE PDF FORMAL E CONTRATO DE LOCAÇÃO ---
 def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal, frete, taxa_dificuldade, total, status, obs_dificuldade=""):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -209,13 +223,20 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
         story.append(Paragraph(f"<b>Obs. Acesso / Descarregamento:</b> {obs_dificuldade}", legal_style))
         story.append(Spacer(1, 6))
 
-    story.append(Paragraph("<b>TERMOS E CUIDADOS DE LOCAÇÃO</b>", ParagraphStyle('SubHeader', parent=styles['Heading3'], fontSize=10, textColor=colors.HexColor('#1E3A8A'))))
-    story.append(Paragraph("1. <b>Conferência Amigável:</b> Verifique os itens na entrega para garantirmos juntos o sucesso do seu evento.", legal_style))
-    story.append(Paragraph("2. <b>Devolução Prática:</b> Guarde pratos, copos e talheres nas embalagens originais enviadas.", legal_style))
-    story.append(Paragraph("3. <b>Compromisso com o Cliente:</b> Havendo eventuais perdas ou avarias, a reposição será cobrada a preço de custo praticado no mercado.", legal_style))
+    story.append(Paragraph("<b>CONTRATO E TERMOS DE LOCAÇÃO</b>", ParagraphStyle('SubHeader', parent=styles['Heading3'], fontSize=10, textColor=colors.HexColor('#1E3A8A'))))
+    story.append(Paragraph("1. <b>Guarda e Conservação:</b> O locatário responsabiliza-se pela guarda e perfeita conservação dos materiais contratados durante todo o período do evento.", legal_style))
+    story.append(Paragraph("2. <b>Cancelamento:</b> O cancelamento do pedido deve ser solicitado com pelo menos 1 (uma) semana de antecedência da data do evento. Caso ocorra após este prazo, incidirá multa de 30% sobre o valor total do contrato.", legal_style))
+    story.append(Paragraph("3. <b>Danos e Perdas:</b> O locatário compromete-se a ressarcir integralmente o locador em caso de danos, avarias ou perdas das peças, a preço de custo praticado no mercado.", legal_style))
+    story.append(Paragraph("4. <b>Entrega e Logística:</b> O locador prontifica-se a entregar os materiais em perfeitas condições de uso e sem avarias, dentro do prazo combinado e local preestabelecido.", legal_style))
+    story.append(Paragraph("5. <b>Recolhimento e Descumprimento:</b> Os bens serão recolhidos pelo locador dentro do prazo combinado. Em caso de descumprimento injustificado das condições contratuais, incidirá multa de 30%.", legal_style))
     
     doc.build(story)
     buffer.seek(0)
+    
+    nome_pdf = f"Orcamento_Renascer_{cliente['nome'].replace(' ', '_')}_{evento.replace(' ', '_')}.pdf"
+    salvar_pdf_localmente(buffer, nome_pdf)
+    buffer.seek(0)
+    
     return buffer
 
 # --- CÁLCULO DE FRETE E DISTÂNCIA POR CEP ---
@@ -700,7 +721,7 @@ elif modo == "Área do Cliente":
                 tabela_itens_html += "</table>"
                 st.markdown(tabela_itens_html, unsafe_allow_html=True)
                 
-                # CÁLCULO DA TAXA ADICIONAL DE DIFICULDADE (Base 30,00 + Grau % sobre os Materiais)
+                # CÁLCULO DA TAXA ADICIONAL DE DIFICULDADE
                 taxa_dificuldade = 0.0
                 if tem_dificuldade:
                     taxa_dificuldade = 30.00 + (subtotal_materiais * (grau_dificuldade / 100.0))
@@ -718,22 +739,21 @@ elif modo == "Área do Cliente":
 
                 st.markdown("</div>", unsafe_allow_html=True)
                 
-                # --- TERMOS DE DEVOLUÇÃO ---
+                # --- TERMOS E CONTRATO DE LOCAÇÃO ---
                 st.markdown("---")
-                st.markdown("#### 📜 Termos Simples de Recebimento e Devolução")
-                st.caption("Por favor, leia e aceite as condições de uso para habilitar a finalização:")
+                st.markdown("#### 📜 Termos de Locação e Devolução")
+                st.caption("Por favor, leia e aceite as condições para habilitar a finalização:")
                 
-                with st.container(height=160):
+                with st.container(height=170):
                     st.markdown("""
-                    **Bem-vindo à Renascer Locações! Preparamos tudo para que seu evento seja perfeito.**
-                    
-                    * **1. Conferência na Entrega:** Ao receber os materiais, confira os itens junto com a nossa equipe.
-                    * **2. Cuidados e Devolução:** Devolva louças, copos e talheres organizados nas embalagens originais enviadas.
-                    * **3. Eventuais Danos:** Caso ocorra alguma quebra ou perda, será cobrado o valor de custo praticado no mercado.
-                    * **4. Confirmação de Reserva:** A finalização realiza a solicitação de reserva. A confirmação definitiva ocorre após homologação do estoque.
+                    * **1. Guarda e Conservação:** O locatário responsabiliza-se pela guarda e conservação dos materiais contratados durante o evento.
+                    * **2. Cancelamento:** O pedido pode ser cancelado sem custo até 1 semana antes do evento. Após esse prazo, haverá multa de 30% do valor total do contrato.
+                    * **3. Danos e Perdas:** O locatário compromete-se a ressarcir o locador em caso de danos, avarias ou perdas das peças.
+                    * **4. Compromisso do Locador:** O locador prontifica-se a entregar os materiais em condições de uso e sem avarias, no prazo combinado e local preestabelecido.
+                    * **5. Recolhimento:** O locador recolherá os itens dentro do prazo combinado. Em caso de descumprimento contratual, incidirá multa de 30%.
                     """)
 
-                concordou_termos = st.checkbox("✅ Li e concordo com os Termos de Locação e Devolução", key="chk_termos_aceite")
+                concordou_termos = st.checkbox("✅ Li e concordo com os Termos e Cláusulas de Locação", key="chk_termos_aceite")
 
                 pdf_bytes = gerar_pdf_orcamento(
                     cli, "Orçamento Formal", str(data_festa), end_rua_festa,
@@ -802,7 +822,6 @@ elif modo == "Área do Cliente":
                             }
                             st.session_state.pedidos_standby.append(novo_stb)
                         
-                        # Limpeza do carrinho temporário
                         st.session_state.carrinho_atual = {}
                         st.session_state.toalhas_vinculadas = {}
                         tocar_som("sucesso")
@@ -863,85 +882,197 @@ elif modo == "Área do Cliente":
 elif modo == "Painel Administrativo":
     st.title("🛠️ Painel Administrativo — Renascer Locações")
     
-    tab_admin_pedidos, tab_admin_catalogo = st.tabs(["📥 Gerenciar Pedidos / Homologação", "📦 Gerenciar Catálogo e Estoque"])
+    # --- SISTEMA DE AUTENTICAÇÃO POR SENHA ---
+    senha_correta = "renascer123"
+    senha_input = st.text_input("Digite a senha do administrador para acessar o painel:", type="password", key="input_senha_admin")
     
-    with tab_admin_pedidos:
-        st.subheader("Pedidos Recebidos")
+    if senha_input == senha_correta:
+        st.success("Acesso autorizado com sucesso!")
         
-        if not st.session_state.pedidos_standby:
-            st.info("Nenhum pedido registrado no momento.")
-        else:
-            for p in st.session_state.pedidos_standby:
-                with st.expander(f"ID #{p['id']} - {p['cliente']['nome']} - Evento: {p['evento']} ({p['status']})"):
-                    st.write(f"**Contato:** {p['cliente']['telefone']} | **Data:** {p['data']}")
-                    st.write(f"**Endereço:** {p['endereco']}")
-                    st.write(f"**Total:** R$ {p['total']:.2f} (Frete: R$ {p['frete']:.2f} | Adic. Acesso: R$ {p.get('taxa_dificuldade', 0.0):.2f})")
-                    if p.get('obs_dificuldade'):
-                        st.write(f"**Obs. Dificuldade de Acesso:** {p['obs_dificuldade']}")
-                    
-                    st.markdown("**Itens:**")
-                    for it in p['itens_detalhe']:
-                        st.write(f"- {it['qtd']}x {it['nome']}")
-                        
-                    if p['status'] != 'Homologado (Disponibilidade Confirmada)':
-                        if st.button("✅ Homologar Pedido (Confirmar Estoque)", key=f"btn_homologar_{p['id']}"):
-                            p['status'] = 'Homologado (Disponibilidade Confirmada)'
-                            tocar_som("homologado")
-                            st.success(f"Pedido #{p['id']} Homologado com Sucesso!")
-                            st.rerun()
-
-    with tab_admin_catalogo:
-        st.subheader("📦 Catálogo de Produtos e Gestão de Estoque")
-        st.caption("Edite os valores diretamente na tabela ou selecione uma linha e pressione 'Delete' para excluir o item do catálogo.")
+        tab_admin_pedidos, tab_impressao_rapida, tab_relatorio_entrega, tab_relatorio_financeiro, tab_admin_catalogo = st.tabs([
+            "📥 Gerenciar Pedidos / Homologação",
+            "🖨️ Impressão Rápida em Lote",
+            "🚚 Relatório de Entregas por Período",
+            "📊 Relatório Financeiro por Período",
+            "📦 Gerenciar Catálogo e Estoque"
+        ])
         
-        df_cat = pd.DataFrame(st.session_state.catalogo)
-        
-        # Tabela editável interativa com exclusão/adição nativa
-        df_editado = st.data_editor(
-            df_cat,
-            num_rows="dynamic",
-            column_config={
-                "id": st.column_config.NumberColumn("ID", disabled=True),
-                "nome": st.column_config.TextColumn("Nome do Item", required=True),
-                "categoria": st.column_config.SelectboxColumn("Categoria", options=["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"]),
-                "preco": st.column_config.NumberColumn("Preço (R$)", format="R$ %.2f"),
-                "estoque": st.column_config.NumberColumn("Estoque", min_value=0),
-                "foto": st.column_config.TextColumn("URL da Foto / Caminho")
-            },
-            hide_index=True,
-            use_container_width=True,
-            key="editor_catalogo_admin"
-        )
-        
-        col_salvar, col_espaco = st.columns([1, 3])
-        with col_salvar:
-            if st.button("💾 Salvar Alterações / Exclusões no Catálogo", use_container_width=True):
-                novos_dados = df_editado.to_dict(orient="records")
-                st.session_state.catalogo = novos_dados
-                salvar_catalogo_csv(novos_dados)
-                tocar_som("sucesso")
-                st.success("Catálogo e estoque gravados permanentemente com sucesso!")
-                st.rerun()
-
-        st.markdown("---")
-        st.subheader("➕ Adicionar Novo Item ao Catálogo")
-        with st.form("form_add_catalogo"):
-            novo_nome = st.text_input("Nome do Material")
-            nova_cat = st.selectbox("Categoria", ["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"])
-            novo_preco = st.number_input("Preço da Diária (R$)", min_value=0.0, value=10.0, step=0.50)
-            novo_estq = st.number_input("Quantidade em Estoque", min_value=1, value=50)
-            nova_foto = st.text_input("URL/Caminho da Foto (deixe em branco se não houver)", value="")
+        # TAB ADMINISTRATIVA 1: GERENCIAR PEDIDOS
+        with tab_admin_pedidos:
+            st.subheader("Pedidos Recebidos")
             
-            if st.form_submit_button("➕ Cadastrar Item no Catálogo"):
-                if novo_nome:
-                    novo_id = max([int(i['id']) for i in st.session_state.catalogo], default=0) + 1
-                    novo_item = {
-                        "id": novo_id, "categoria": nova_cat, "nome": novo_nome,
-                        "preco": novo_preco, "estoque": novo_estq, "foto": nova_foto,
-                        "tipo_mesa": "None", "tipo_toalha": "None"
-                    }
-                    st.session_state.catalogo.append(novo_item)
-                    salvar_catalogo_csv(st.session_state.catalogo)
+            if not st.session_state.pedidos_standby:
+                st.info("Nenhum pedido registrado no momento.")
+            else:
+                for p in st.session_state.pedidos_standby:
+                    with st.expander(f"ID #{p['id']} - {p['cliente']['nome']} - Evento: {p['evento']} ({p['status']})"):
+                        st.write(f"**Contato:** {p['cliente']['telefone']} | **Data:** {p['data']}")
+                        st.write(f"**Endereço:** {p['endereco']}")
+                        st.write(f"**Total:** R$ {p['total']:.2f} (Frete: R$ {p['frete']:.2f} | Adic. Acesso: R$ {p.get('taxa_dificuldade', 0.0):.2f})")
+                        if p.get('obs_dificuldade'):
+                            st.write(f"**Obs. Dificuldade de Acesso:** {p['obs_dificuldade']}")
+                        
+                        st.markdown("**Itens:**")
+                        for it in p['itens_detalhe']:
+                            st.write(f"- {it['qtd']}x {it['nome']}")
+                            
+                        if p['status'] != 'Homologado (Disponibilidade Confirmada)':
+                            if st.button("✅ Homologar Pedido (Confirmar Estoque)", key=f"btn_homologar_{p['id']}"):
+                                p['status'] = 'Homologado (Disponibilidade Confirmada)'
+                                tocar_som("homologado")
+                                st.success(f"Pedido #{p['id']} Homologado com Sucesso!")
+                                st.rerun()
+
+        # TAB ADMINISTRATIVA 2: IMPRESSÃO RÁPIDA EM LOTE
+        with tab_impressao_rapida:
+            st.subheader("🖨️ Seleção e Impressão Rápida de Pedidos")
+            st.caption("Marque as caixas dos pedidos que deseja gerar em PDF:")
+            
+            if not st.session_state.pedidos_standby:
+                st.info("Não existem pedidos no sistema para seleção.")
+            else:
+                pedidos_selecionados = []
+                for p in st.session_state.pedidos_standby:
+                    col_chk, col_info = st.columns([1, 10])
+                    with col_chk:
+                        marcado = st.checkbox("", key=f"chk_imp_lote_{p['id']}")
+                        if marcado:
+                            pedidos_selecionados.append(p)
+                    with col_info:
+                        st.write(f"**ID #{p['id']}** — Cliente: {p['cliente']['nome']} | Evento: {p['evento']} | Data: {p['data']} | Status: {p['status']}")
+                    st.divider()
+
+                if st.button("📄 Gerar e Baixar PDFs Selecionados em Lote", use_container_width=True):
+                    if not pedidos_selecionados:
+                        st.warning("Por favor, selecione ao menos um pedido para gerar o PDF.")
+                    else:
+                        for p_sel in pedidos_selecionados:
+                            pdf_gen = gerar_pdf_orcamento(
+                                p_sel['cliente'], p_sel['evento'], p_sel['data'], p_sel['endereco'],
+                                p_sel['itens_detalhe'], p_sel['subtotal'], p_sel['frete'], p_sel.get('taxa_dificuldade', 0.0),
+                                p_sel['total'], p_sel['status'], p_sel.get('obs_dificuldade', "")
+                            )
+                        st.success(f"🎉 {len(pedidos_selecionados)} PDF(s) gerado(s) e gravado(s) na pasta: `{PASTA_PDF}`")
+
+        # TAB ADMINISTRATIVA 3: RELATÓRIO DE ENTREGAS POR PERÍODO CUSTOMIZADO
+        with tab_relatorio_entrega:
+            st.subheader("🚚 Relatório de Entregas por Período Personalizado")
+            
+            col_dt_e1, col_dt_e2 = st.columns(2)
+            with col_dt_e1:
+                dt_inicio_e = st.date_input("Data de Início das Entregas:", value=datetime.today(), key="dt_ini_entregas")
+            with col_dt_e2:
+                dt_fim_e = st.date_input("Data de Fim das Entregas:", value=datetime.today(), key="dt_fim_entregas")
+
+            pedidos_no_periodo = []
+            for p in st.session_state.pedidos_standby:
+                try:
+                    dt_p = datetime.strptime(p['data'], "%Y-%m-%d").date()
+                    if dt_inicio_e <= dt_p <= dt_fim_e:
+                        pedidos_no_periodo.append(p)
+                except Exception:
+                    pass
+
+            st.markdown(f"### Entregas Agendadas ({dt_inicio_e.strftime('%d/%m/%Y')} até {dt_fim_e.strftime('%d/%m/%Y')}):")
+            if not pedidos_no_periodo:
+                st.info("Nenhuma entrega agendada para o período selecionado.")
+            else:
+                for p_e in pedidos_no_periodo:
+                    st.markdown(f"📍 **Data: {p_e['data']}** | Cliente: {p_e['cliente']['nome']} (Tel: {p_e['cliente']['telefone']})")
+                    st.write(f"Endereço: {p_e['endereco']}")
+                    st.write(f"Observações de Acesso: {p_e.get('obs_dificuldade', 'Sem restrições')}")
+                    st.divider()
+
+        # TAB ADMINISTRATIVA 4: RELATÓRIO FINANCEIRO POR PERÍODO CUSTOMIZADO
+        with tab_relatorio_financeiro:
+            st.subheader("📊 Relatório Financeiro Personalizado (Faturamento)")
+            
+            col_dt_f1, col_dt_f2 = st.columns(2)
+            with col_dt_f1:
+                dt_inicio_f = st.date_input("Data Inicial:", value=datetime.today(), key="dt_ini_fin")
+            with col_dt_f2:
+                dt_fim_f = st.date_input("Data Final:", value=datetime.today(), key="dt_fim_fin")
+
+            total_materiais = 0.0
+            total_frete = 0.0
+            total_dificuldade = 0.0
+            total_geral = 0.0
+            qtd_pedidos = 0
+
+            for p in st.session_state.pedidos_standby:
+                try:
+                    dt_p = datetime.strptime(p['data'], "%Y-%m-%d").date()
+                    if dt_inicio_f <= dt_p <= dt_fim_f:
+                        total_materiais += p.get('subtotal', 0.0)
+                        total_frete += p.get('frete', 0.0)
+                        total_dificuldade += p.get('taxa_dificuldade', 0.0)
+                        total_geral += p.get('total', 0.0)
+                        qtd_pedidos += 1
+                except Exception:
+                    pass
+
+            st.markdown(f"### Balanço do Período ({dt_inicio_f.strftime('%d/%m/%Y')} a {dt_fim_f.strftime('%d/%m/%Y')}):")
+            col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+            col_m1.metric("Pedidos Totais", f"{qtd_pedidos}")
+            col_m2.metric("Subtotal Materiais", f"R$ {total_materiais:.2f}")
+            col_m3.metric("Total Fretes", f"R$ {total_frete:.2f}")
+            col_m4.metric("Faturamento Geral", f"R$ {total_geral:.2f}")
+
+        # TAB ADMINISTRATIVA 5: GERENCIAR CATÁLOGO E ESTOQUE
+        with tab_admin_catalogo:
+            st.subheader("📦 Catálogo de Produtos e Gestão de Estoque")
+            st.caption("Edite os valores diretamente na tabela ou selecione uma linha e pressione 'Delete' para excluir o item do catálogo.")
+            
+            df_cat = pd.DataFrame(st.session_state.catalogo)
+            
+            df_editado = st.data_editor(
+                df_cat,
+                num_rows="dynamic",
+                column_config={
+                    "id": st.column_config.NumberColumn("ID", disabled=True),
+                    "nome": st.column_config.TextColumn("Nome do Item", required=True),
+                    "categoria": st.column_config.SelectboxColumn("Categoria", options=["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"]),
+                    "preco": st.column_config.NumberColumn("Preço (R$)", format="R$ %.2f"),
+                    "estoque": st.column_config.NumberColumn("Estoque", min_value=0),
+                    "foto": st.column_config.TextColumn("URL da Foto / Caminho")
+                },
+                hide_index=True,
+                use_container_width=True,
+                key="editor_catalogo_admin"
+            )
+            
+            col_salvar, col_espaco = st.columns([1, 3])
+            with col_salvar:
+                if st.button("💾 Salvar Alterações / Exclusões no Catálogo", use_container_width=True):
+                    novos_dados = df_editado.to_dict(orient="records")
+                    st.session_state.catalogo = novos_dados
+                    salvar_catalogo_csv(novos_dados)
                     tocar_som("sucesso")
-                    st.success(f"Item '{novo_nome}' adicionado com sucesso!")
+                    st.success("Catálogo e estoque gravados permanentemente com sucesso!")
                     st.rerun()
+
+            st.markdown("---")
+            st.subheader("➕ Adicionar Novo Item ao Catálogo")
+            with st.form("form_add_catalogo"):
+                novo_nome = st.text_input("Nome do Material")
+                nova_cat = st.selectbox("Categoria", ["Mobiliário & Mesas", "Toalhas & Enxoval", "Louças & Copos", "Serviço & Rechauds", "Equipamentos & Freezers"])
+                novo_preco = st.number_input("Preço da Diária (R$)", min_value=0.0, value=10.0, step=0.50)
+                novo_estq = st.number_input("Quantidade em Estoque", min_value=1, value=50)
+                nova_foto = st.text_input("URL/Caminho da Foto (deixe em branco se não houver)", value="")
+                
+                if st.form_submit_button("➕ Cadastrar Item no Catálogo"):
+                    if novo_nome:
+                        novo_id = max([int(i['id']) for i in st.session_state.catalogo], default=0) + 1
+                        novo_item = {
+                            "id": novo_id, "categoria": nova_cat, "nome": novo_nome,
+                            "preco": novo_preco, "estoque": novo_estq, "foto": nova_foto,
+                            "tipo_mesa": "None", "tipo_toalha": "None"
+                        }
+                        st.session_state.catalogo.append(novo_item)
+                        salvar_catalogo_csv(st.session_state.catalogo)
+                        tocar_som("sucesso")
+                        st.success(f"Item '{novo_nome}' adicionado com sucesso!")
+                        st.rerun()
+
+    elif senha_input != "":
+        st.error("Senha incorreta! Acesso negado ao painel de administração.")
