@@ -110,7 +110,7 @@ CATALOGO_PADRAO = [
     # Mobiliário & Mesas
     {"id": 1, "categoria": "Mobiliário & Mesas", "nome": "Jogo de Mesa com 4 Cadeiras de Plástico (Branca)", "preco": 14.00, "estoque": 50, "foto": "", "tipo_mesa": "quadrada", "tipo_toalha": "None"},
     {"id": 2, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 6 Lugares (Tampão de Madeira)", "preco": 18.00, "estoque": 20, "foto": "", "tipo_mesa": "redonda", "tipo_toalha": "None"},
-    {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Aparador Rústico de Madeira (2,50m)", "preco": 25.00, "estoque": 5, "foto": "", "tipo_mesa": "outro", "tipo_toalha": "None"},
+    {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Aparador Rústico de Madeira (2,50m)", "preco": 25.00, "estoque": 5, "foto": "", "tipo_mesa": "aparador", "tipo_toalha": "None"},
     {"id": 4, "categoria": "Mobiliário & Mesas", "nome": "Cadeira de Plástico Branca Avulsa", "preco": 3.00, "estoque": 200, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
          
     # Toalhas & Enxoval
@@ -350,6 +350,16 @@ def buscar_materiais_inteligente(termo, catalogo):
     resultados.sort(key=lambda x: x[1], reverse=True)
     return [r[0] for r in resultados]
 
+def obter_preco_toalha_estoque(tipo_mesa, catalogo):
+    """Busca o preço padrão de toalha no estoque baseado no tipo de mesa/aparador"""
+    tipo = str(tipo_mesa).lower()
+    if tipo == "redonda":
+        toalha_item = next((i for i in catalogo if "redonda" in str(i['nome']).lower() and i['categoria'] == "Toalhas & Enxoval"), None)
+        return toalha_item['preco'] if toalha_item else 12.00
+    else:
+        toalha_item = next((i for i in catalogo if "quadrada" in str(i['nome']).lower() and i['categoria'] == "Toalhas & Enxoval"), None)
+        return toalha_item['preco'] if toalha_item else 6.00
+
 # --- BASE DE DADOS DA SESSÃO ---
 if 'catalogo' not in st.session_state:
     st.session_state.catalogo = carregar_catalogo_csv()
@@ -449,7 +459,7 @@ if modo == "Meu Perfil":
 # ==========================================
 elif modo == "Área do Cliente":
     
-    # TELA DE CADASTRO INICIAL (Interface Limpa & Elegante)
+    # TELA DE CADASTRO INICIAL
     if not st.session_state.cliente_perfil:
         st.markdown("""
         <div style='background-color:#F8FAFC; border: 1px solid #E2E8F0; padding:25px; border-radius:12px; margin-bottom:20px;'>
@@ -536,7 +546,7 @@ elif modo == "Área do Cliente":
                 tocar_som("sucesso")
                 st.rerun()
 
-    # TELA PRINCIPAL DO CLIENTE (Navegação Ativa)
+    # TELA PRINCIPAL DO CLIENTE
     else:
         cli = st.session_state.cliente_perfil
         
@@ -547,7 +557,8 @@ elif modo == "Área do Cliente":
             if prod:
                 tot_carrinho_temp += prod['preco'] * q
                 if item_id in st.session_state.toalhas_vinculadas:
-                    tot_carrinho_temp += st.session_state.toalhas_vinculadas[item_id]['preco'] * q
+                    t_vinc = st.session_state.toalhas_vinculadas[item_id]
+                    tot_carrinho_temp += t_vinc['preco'] * t_vinc['qtd']
 
         st.markdown(f"""
         <div style="background-color: #1E3A8A; color: white; padding: 14px 24px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0px 4px 12px rgba(30, 58, 138, 0.15);">
@@ -562,7 +573,7 @@ elif modo == "Área do Cliente":
         </div>
         """, unsafe_allow_html=True)
 
-        # ALERTAS SONOROS AUTOMÁTICOS PARA O CLIENTE
+        # ALERTAS SONOROS AUTOMÁTICOS
         pedidos_homologados_recentes = [p for p in st.session_state.pedidos_standby if p['cliente']['telefone'] == cli['telefone'] and p.get('status') == 'Homologado (Disponibilidade Confirmada)' and p.get('alerta_cliente_tocado') != True]
         if pedidos_homologados_recentes:
             for p_h in pedidos_homologados_recentes:
@@ -586,7 +597,7 @@ elif modo == "Área do Cliente":
             
             col_busca, col_cardapio = st.columns([3, 1])
             with col_busca:
-                input_busca = st.text_input("🔍 O que você procura? (ex: mesa, freezer, prato, taça...)", value=st.session_state.termo_busca, key="input_busca_campo")
+                input_busca = st.text_input("🔍 O que você procura? (ex: mesa, aparador, freezer, prato, taça...)", value=st.session_state.termo_busca, key="input_busca_campo")
                 st.session_state.termo_busca = input_busca
             with col_cardapio:
                 st.write("&#160;")
@@ -609,21 +620,51 @@ elif modo == "Área do Cliente":
                             if item.get("foto") and str(item['foto']).strip() != "":
                                 st.image(item['foto'], width=150)
                             
-                            if item.get("tipo_mesa") in ["quadrada", "redonda"]:
+                            # --- CAMPO DINÂMICO PARA INCLUSÃO DE TOALHA EM MESAS E APARADORES ---
+                            nome_item_lower = str(item['nome']).lower()
+                            tipo_mesa_val = str(item.get("tipo_mesa", "None")).lower()
+                            
+                            is_mesa_ou_aparador = (
+                                "mesa" in nome_item_lower or 
+                                "aparador" in nome_item_lower or 
+                                tipo_mesa_val in ["quadrada", "redonda", "aparador", "outro"]
+                            )
+                            
+                            if is_mesa_ou_aparador:
                                 st.markdown("---")
-                                tipo_m = item.get("tipo_mesa")
-                                quer_toalha = st.checkbox(f"Adicionar Toalha {tipo_m.capitalize()} para esta mesa?", key=f"chk_toalha_{item['id']}")
+                                quer_toalha = st.checkbox(
+                                    f"Deseja incluir toalha para este móvel?", 
+                                    value=(item['id'] in st.session_state.toalhas_vinculadas),
+                                    key=f"chk_toalha_{item['id']}"
+                                )
                                 
                                 if quer_toalha:
-                                    cor_toalha = st.selectbox(
-                                        "Selecione a cor:",
-                                        ["Branca Clássica", "Vermelho Adamascado", "Palha Adamascado", "Verde Escuro", "Preta", "Azul"],
-                                        key=f"cor_toalha_{item['id']}"
-                                    )
+                                    col_cor, col_qtd_toalha = st.columns([2, 1])
+                                    with col_cor:
+                                        cor_manual = st.text_input(
+                                            "Digite a cor pretendida para a toalha:",
+                                            value=st.session_state.toalhas_vinculadas.get(item['id'], {}).get('cor', 'Branca'),
+                                            placeholder="Ex: Vermelho, Branca, Azul, Rústica...",
+                                            key=f"cor_manual_{item['id']}"
+                                        )
+                                    with col_qtd_toalha:
+                                        qtd_atual_m = st.session_state.carrinho_atual.get(item['id'], 1)
+                                        qtd_toalha = st.number_input(
+                                            "Qtd de toalhas:",
+                                            min_value=1,
+                                            value=int(st.session_state.toalhas_vinculadas.get(item['id'], {}).get('qtd', qtd_atual_m)),
+                                            key=f"qtd_toalha_{item['id']}"
+                                        )
+                                    
+                                    # Preço do Estoque baseado na modalidade do móvel
+                                    preco_unit_toalha = obter_preco_toalha_estoque(tipo_mesa_val, st.session_state.catalogo)
+                                    st.caption(f"💡 Valor unitário da toalha (conforme estoque): **R$ {preco_unit_toalha:.2f}**")
+                                    
                                     st.session_state.toalhas_vinculadas[item['id']] = {
-                                        "tipo": tipo_m,
-                                        "cor": cor_toalha,
-                                        "preco": 6.00 if tipo_m == "quadrada" else 12.00
+                                        "tipo": tipo_mesa_val if tipo_mesa_val != "None" else "Móvel",
+                                        "cor": cor_manual if cor_manual.strip() else "Não especificada",
+                                        "qtd": qtd_toalha,
+                                        "preco": preco_unit_toalha
                                     }
                                 else:
                                     st.session_state.toalhas_vinculadas.pop(item['id'], None)
@@ -764,11 +805,12 @@ elif modo == "Área do Cliente":
                         
                         if item_id in st.session_state.toalhas_vinculadas:
                             t_info = st.session_state.toalhas_vinculadas[item_id]
-                            tot_toalha = t_info['preco'] * q
+                            qtd_t = t_info['qtd']
+                            tot_toalha = t_info['preco'] * qtd_t
                             subtotal_materiais += tot_toalha
-                            nome_t = f"Toalha {t_info['tipo'].capitalize()} ({t_info['cor']})"
-                            lista_pdf_itens.append({"nome": nome_t, "qtd": q, "preco": t_info['preco'], "total": tot_toalha})
-                            tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0; color:#475569;'><td style='padding:8px; padding-left:25px;'>└ ➕ {nome_t}</td><td style='text-align:center;'>{q}</td><td style='text-align:right;'>R$ {t_info['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_toalha:.2f}</td></tr>"
+                            nome_t = f"Toalha para {prod['nome']} (Cor: {t_info['cor']})"
+                            lista_pdf_itens.append({"nome": nome_t, "qtd": qtd_t, "preco": t_info['preco'], "total": tot_toalha})
+                            tabela_itens_html += f"<tr style='border-bottom: 1px solid #E2E8F0; color:#475569;'><td style='padding:8px; padding-left:25px;'>└ ➕ {nome_t}</td><td style='text-align:center;'>{qtd_t}</td><td style='text-align:right;'>R$ {t_info['preco']:.2f}</td><td style='text-align:right;'>R$ {tot_toalha:.2f}</td></tr>"
 
                 tabela_itens_html += "</table>"
                 st.markdown(tabela_itens_html, unsafe_allow_html=True)
@@ -907,14 +949,13 @@ elif modo == "Área do Cliente":
                         
                         st.divider()
 
-                        # --- ÁREA DE PAGAMENTO PIX (SÓ É LIBERADA APÓS HOMOLOGAÇÃO) ---
+                        # --- ÁREA DE PAGAMENTO PIX ---
                         if eh_homologado:
                             st.markdown("### 💳 Pagamento Liberado via PIX")
                             st.success("Estoque reservado com sucesso! Realize o pagamento para confirmar seu pedido.")
                             
                             col_qr, col_pix = st.columns([1, 2])
                             with col_qr:
-                                # QR Code Dinâmico / Ilustrativo do Pix
                                 st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=00020126580014BR.GOV.BCB.PIX0136629822404345204000053039865405{ped['total']:.2f}5802BR5923RENASCER%20LOCACOES6007GOIANIA62070503***6304", width=180)
                             with col_pix:
                                 st.markdown("**Chave PIX (Telefone):** `62982240434`")
@@ -954,7 +995,6 @@ elif modo == "Área do Cliente":
 elif modo == "Painel Administrativo" and st.session_state.eh_admin:
     st.title("🛠️ Painel Administrativo de Homologação")
 
-    # SOM DE ALERTA PARA O ADMIN CASO HAJA NOVO PEDIDO PENDENTE
     novos_pedidos_pendentes = [p for p in st.session_state.pedidos_standby if p['status'] == 'Aguardando Homologação' and p.get('alerta_admin_tocado') != True]
     if novos_pedidos_pendentes:
         tocar_som("novo_pedido")
