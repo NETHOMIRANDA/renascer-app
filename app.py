@@ -2,6 +2,7 @@ import os
 import datetime
 import pandas as pd
 import streamlit as st
+from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
@@ -12,20 +13,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- DIRECTÓRIO PARA SALVAR PDFS ---
+# --- DIRETÓRIO PARA SALVAR PDFS LOCALMENTE (SE EXECUTADO NO SEU COMPUTADOR) ---
 PASTA_PDF = r"C:\Users\netho\OneDrive\Desktop\Modelo 02 - Copia\PDF"
-os.makedirs(PASTA_PDF, exist_ok=True)
+if os.path.exists(r"C:\Users\netho"):
+    os.makedirs(PASTA_PDF, exist_ok=True)
 
 # --- EXIBIÇÃO DA LOGO E CABEÇALHO ---
-URL_LOGO = "https://raw.githubusercontent.com/streamlit/app-archetype/main/static/logo.png"  # Substitua pelo caminho local ou URL da sua logo
+URL_LOGO = "https://raw.githubusercontent.com/streamlit/app-archetype/main/static/logo.png"
+
+# Determina qual imagem de logo utilizar
+logo_para_exibir = "logo.png" if os.path.exists("logo.png") else URL_LOGO
 
 col_logo, col_titulo = st.columns([1, 4])
 with col_logo:
-    # Exibe a logo diretamente para o cliente
-    if os.path.exists("logo.png"):
-        st.image("logo.png", width=120)
-    else:
-        st.image(URL_LOGO, width=120)
+    st.image(logo_para_exibir, width=120)
 
 with col_titulo:
     st.title("🏰 Renascer Locação")
@@ -35,7 +36,7 @@ with col_titulo:
 query_params = st.query_params
 eh_admin = str(query_params.get("admin", "")).lower() == "true"
 
-st.sidebar.image(URL_LOGO if not os.path.exists("logo.png") else "logo.png", use_column_width=True)
+st.sidebar.image(logo_para_exibir, use_container_width=True)
 st.sidebar.title("📌 Navegação")
 
 if eh_admin:
@@ -45,7 +46,7 @@ else:
 
 modo = st.sidebar.radio("Ir para:", opcoes_menu)
 
-# --- BASE DE DADOS SIMULADA (EXEMPLO) ---
+# --- BASE DE DADOS SIMULADA ---
 if "pedidos" not in st.session_state:
     st.session_state.pedidos = pd.DataFrame([
         {"ID": 101, "Cliente": "João Silva", "Data": datetime.date(2026, 9, 20), "Valor": 450.0, "Status": "Confirmado", "Imprimir": False},
@@ -53,12 +54,10 @@ if "pedidos" not in st.session_state:
         {"ID": 103, "Cliente": "Carlos Oliveira", "Data": datetime.date(2026, 10, 5), "Valor": 800.0, "Status": "Confirmado", "Imprimir": False},
     ])
 
-# --- FUNÇÃO DE GERAÇÃO DE CONTRATO PDF ---
-def gerar_contrato_pdf(id_pedido, cliente, valor, data_evento):
-    nome_arquivo = f"Contrato_Pedido_{id_pedido}.pdf"
-    caminho_completo = os.path.join(PASTA_PDF, nome_arquivo)
-    
-    c = canvas.Canvas(caminho_completo, pagesize=letter)
+# --- FUNÇÃO DE GERAÇÃO DE CONTRATO PDF (EM MEMÓRIA E ARQUIVO LOCAL) ---
+def gerar_contrato_pdf_bytes(id_pedido, cliente, valor, data_evento):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
     c.setFont("Helvetica-Bold", 16)
     c.drawString(100, 750, "CONTRATO DE PRESTAÇÃO DE SERVIÇOS E LOCAÇÃO")
     c.setFont("Helvetica-Bold", 12)
@@ -76,22 +75,18 @@ def gerar_contrato_pdf(id_pedido, cliente, valor, data_evento):
         "CLÁUSULAS E CONDIÇÕES CONTRATUAIS:",
         "",
         "1. DO OBJETO E CONSERVAÇÃO:",
-        "   O Locatário responsabiliza-se integralmente pela guarda, uso adequado e conservação",
-        "   dos materiais locados durante todo o período do contrato.",
+        "   O Locatário responsabiliza-se pela guarda e conservação dos materiais locados.",
         "",
         "2. DAS CONDIÇÕES DE ENTREGA E RECOLHIMENTO:",
-        "   O Locador compromete-se a entregar os materiais em perfeitas condições de uso e sem avarias,",
-        "   no local preestabelecido e dentro do prazo combinado com o Locatário.",
-        "   O recolhimento será realizado no prazo acordado entre as partes.",
+        "   O Locador se prontifica a entregar os materiais em condições de uso e sem avarias,",
+        "   dentro do prazo combinado e local preestabelecido, e a recolher dentro do prazo ora combinado.",
         "",
-        "3. DOS DANOS E AVARIAS:",
-        "   O Locatário compromete-se a ressarcir o Locador em caso de eventuais danos, perdas",
-        "   ou estragos causados aos equipamentos durante a locação.",
+        "3. DOS DANOS E PERDAS:",
+        "   O Locatário compromete-se a ressarcir o Locador em caso de danos e perdas.",
         "",
-        "4. DO CANCELAMENTO E MULTA rescisória:",
-        "   O cancelamento do pedido deve ser solicitado com antecedência mínima de 7 (sete) dias",
-        "   em relação à data do evento. Cancelamentos intempestivos ou descumprimento contratual",
-        "   sujeitarão a parte infrora à multa de 30% (trinta por cento) sobre o valor total do contrato.",
+        "4. DO CANCELAMENTO E MULTA RESCISÓRIA:",
+        "   O cancelamento do pedido deve ser realizado em pelo menos uma semana (7 dias) antes do evento.",
+        "   Em caso de cancelamento fora do prazo ou descumprimento contratual, haverá multa de 30% do valor total do contrato.",
     ]
     
     for linha in linhas_texto:
@@ -99,7 +94,17 @@ def gerar_contrato_pdf(id_pedido, cliente, valor, data_evento):
         
     c.drawText(text)
     c.save()
-    return caminho_completo
+    
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+
+    # Salva também na pasta local caso o sistema esteja rodando na máquina
+    if os.path.exists(PASTA_PDF):
+        caminho_local = os.path.join(PASTA_PDF, f"Contrato_Pedido_{id_pedido}.pdf")
+        with open(caminho_local, "wb") as f:
+            f.write(pdf_bytes)
+
+    return pdf_bytes
 
 # --- ÁREA DO CLIENTE ---
 if modo == "Área do Cliente":
@@ -151,9 +156,9 @@ elif modo == "Painel Administrativo":
         # ABA 1: IMPRESSÃO RÁPIDA COM SELEÇÃO
         with aba_impressao:
             st.subheader("Impressão de Pedidos em Lote")
-            st.write("Marque com X (selecione) os pedidos que deseja gerar o contrato em PDF:")
+            st.write("Marque as Caixas de Seleção dos pedidos que deseja gerar/imprimir:")
             
-            # Tabela editável para selecionar os pedidos
+            # Tabela editável com caixas de marcação
             pedidos_editados = st.data_editor(
                 st.session_state.pedidos,
                 column_config={
@@ -163,21 +168,30 @@ elif modo == "Painel Administrativo":
                 hide_index=True
             )
             
-            if st.button("Gerar PDFs dos Pedidos Selecionados"):
-                selecionados = pedidos_editados[pedidos_editados["Imprimir"] == True]
-                if selecionados.empty:
-                    st.warning("Nenhum pedido foi marcado para impressão.")
-                else:
-                    for _, row in selecionados.iterrows():
-                        caminho = gerar_contrato_pdf(row["ID"], row["Cliente"], row["Valor"], row["Data"])
-                        st.success(f"PDF do Pedido #{row['ID']} salvo em: {caminho}")
-                        
-        # ABA 2: RELATÓRIO DE ENTREGA COM FILTRO DE DATAS
+            selecionados = pedidos_editados[pedidos_editados["Imprimir"] == True]
+            
+            if not selecionados.empty:
+                st.markdown("---")
+                st.write("📄 **PDFs dos Pedidos Selecionados:**")
+                for _, row in selecionados.iterrows():
+                    pdf_bytes = gerar_contrato_pdf_bytes(row["ID"], row["Cliente"], row["Valor"], row["Data"])
+                    
+                    st.download_button(
+                        label=f"⬇️ Baixar Contrato - Pedido #{row['ID']} ({row['Cliente']})",
+                        data=pdf_bytes,
+                        file_name=f"Contrato_Pedido_{row['ID']}.pdf",
+                        mime="application/pdf",
+                        key=f"dl_{row['ID']}"
+                    )
+            else:
+                st.info("Nenhum pedido marcado no momento. Marque a caixa na coluna 'Selecionar' acima.")
+
+        # ABA 2: RELATÓRIO DE ENTREGA COM FILTRO LIVRE DE DATAS
         with aba_entrega:
-            st.subheader("Filtrar Entregas por Período")
+            st.subheader("Filtrar Entregas por Período Customizado")
             col_d1, col_d2 = st.columns(2)
             with col_d1:
-                dt_inicio_ent = st.date_input("Data Inicial (Entrega)", value=datetime.date(2026, 1, 1), key="ent_ini")
+                dt_inicio_ent = st.date_input("Data Inicial (Entrega)", value=datetime.date(2025, 1, 1), key="ent_ini")
             with col_d2:
                 dt_fim_ent = st.date_input("Data Final (Entrega)", value=datetime.date(2026, 12, 31), key="ent_fim")
                 
@@ -187,7 +201,7 @@ elif modo == "Painel Administrativo":
             ]
             st.dataframe(df_entregas, use_container_width=True)
 
-        # ABA 3: RELATÓRIO FINANCEIRO COM FILTRO DE DATAS LIVRE
+        # ABA 3: RELATÓRIO FINANCEIRO COM FILTRO LIVRE DE DATAS (MESES/ANOS DIFERENTES)
         with aba_financeiro:
             st.subheader("Relatório Financeiro Customizado")
             col_f1, col_f2 = st.columns(2)
