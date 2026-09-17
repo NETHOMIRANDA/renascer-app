@@ -13,64 +13,96 @@ from reportlab.lib import colors
 
 # Configuração da página
 st.set_page_config(
-    page_title="Renascer Locações",
+    page_title="Renascer Locações & Eventos",
     page_icon="🎉",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Estilização CSS para Tela Cheia Total, sem cabeçalhos e sem elementos da plataforma
+# Estilização CSS para Interface Moderna, Tela Cheia Total e Sem Elementos da Plataforma
 st.markdown("""
     <style>
-    /* Ocultar elementos da plataforma Streamlit */
+    /* Ocultar elementos padrão do Streamlit */
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
     .stAppDeployButton {display:none !important;}
     
-    /* Expandir a aplicação para tela cheia ocupando toda a viewport */
+    /* Layout em Tela Cheia */
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 2rem !important;
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 1.5rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
         max-width: 100% !important;
     }
 
-    /* Estilização dos Tabs de Navegação */
-    div[data-baseweb="tab-list"] {
-        position: sticky;
-        top: 0;
-        background-color: #1E3A8A;
-        padding: 8px 12px;
-        border-radius: 8px;
-        z-index: 999;
-        margin-bottom: 20px;
+    /* Banner / Slogan Centralizado da Empresa */
+    .hero-container {
+        background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%);
+        color: #FFFFFF;
+        padding: 30px 20px;
+        border-radius: 16px;
+        text-align: center;
+        box-shadow: 0px 8px 20px rgba(15, 23, 42, 0.15);
+        margin-bottom: 25px;
     }
-    div[data-baseweb="tab"] {
-        color: #FFFFFF !important;
-        font-weight: bold !important;
-        font-size: 15px !important;
-        padding: 8px 16px !important;
+    .hero-title {
+        font-size: 32px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        color: #F8FAFC;
+        margin: 0;
     }
-    div[aria-selected="true"] {
-        background-color: #FFFFFF !important;
-        color: #1E3A8A !important;
-        border-radius: 6px !important;
+    .hero-slogan {
+        font-size: 16px;
+        color: #F59E0B;
+        font-weight: 600;
+        margin-top: 6px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    .hero-description {
+        font-size: 14px;
+        color: #94A3B8;
+        max-width: 800px;
+        margin: 12px auto 0 auto;
+        line-height: 1.5;
     }
 
-    /* Botão discreto de sair na parte inferior */
+    /* Estilização dos Tabs */
+    div[data-baseweb="tab-list"] {
+        background-color: #F1F5F9;
+        padding: 6px;
+        border-radius: 12px;
+        z-index: 999;
+        margin-bottom: 25px;
+    }
+    div[data-baseweb="tab"] {
+        color: #475569 !important;
+        font-weight: 700 !important;
+        font-size: 15px !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+    }
+    div[aria-selected="true"] {
+        background-color: #1E3A8A !important;
+        color: #FFFFFF !important;
+        box-shadow: 0px 4px 10px rgba(30, 58, 138, 0.2);
+    }
+
+    /* Botão Discreto no Rodapé */
     .btn-sair-container {
         display: flex;
         justify-content: center;
         margin-top: 40px;
-        padding-top: 15px;
+        padding-top: 20px;
         border-top: 1px solid #E2E8F0;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- VERIFICAÇÃO DE PARÂMETROS DA URL PARA ACESSO MANUTENÇÃO/ADMIN ---
+# --- VERIFICAÇÃO DE PARÂMETROS DA URL ---
 query_params = st.query_params
 eh_admin = query_params.get("modo") == "admin"
 
@@ -345,6 +377,17 @@ if 'pedido_edicao_id' not in st.session_state:
 if 'termo_busca' not in st.session_state:
     st.session_state.termo_busca = ""
 
+# --- CABEÇALHO / HERO BANNER DA EMPRESA (CENTRALIZADO & ESTENDIDO) ---
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-title">RENASCER LOCAÇÕES & EVENTOS</div>
+    <div class="hero-slogan">EXCELÊNCIA E QUALIDADE EM CADA DETALHE</div>
+    <div class="hero-description">
+        Há anos oferecendo a melhor estrutura em mesas, cadeiras, toalhas, louças e equipamentos para festas e eventos corporativos em Goiânia e Região. Agilidade na entrega, higiene impecável e atendimento de primeira para tornar sua celebração inesquecível.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 # --- MODAL DO CARDÁPIO RESUMIDO DE MATERIAIS ---
 @st.dialog("📋 Lista Rápida de Materiais", width="large")
 def abrir_cardapio_resumido():
@@ -405,9 +448,14 @@ if modo == "Meu Perfil":
 # ==========================================
 elif modo == "Área do Cliente":
     
-    # TELA DE CADASTRO INICIAL (Interface Limpa)
+    # TELA DE CADASTRO INICIAL (Interface Limpa & Elegante)
     if not st.session_state.cliente_perfil:
-        st.subheader("👋 Seja bem-vindo! Faça seu cadastro para acessar o catálogo:")
+        st.markdown("""
+        <div style='background-color:#F8FAFC; border: 1px solid #E2E8F0; padding:25px; border-radius:12px; margin-bottom:20px;'>
+            <h3 style='color:#1E3A8A; margin-top:0;'>👋 Seja bem-vindo!</h3>
+            <p style='color:#64748B;'>Faça seu cadastro rápido para calcular o frete exato e acessar todo nosso catálogo de produtos:</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         c_nome = st.text_input("Seu Nome Completo*", key="cad_nome")
         c_tel = st.text_input("WhatsApp para Contato*", key="cad_tel")
@@ -487,7 +535,7 @@ elif modo == "Área do Cliente":
                 tocar_som("sucesso")
                 st.rerun()
 
-    # TELA PRINCIPAL DO CLIENTE (Tela Cheia e Limpa)
+    # TELA PRINCIPAL DO CLIENTE (Navegação Ativa)
     else:
         cli = st.session_state.cliente_perfil
         
@@ -501,12 +549,12 @@ elif modo == "Área do Cliente":
                     tot_carrinho_temp += st.session_state.toalhas_vinculadas[item_id]['preco'] * q
 
         st.markdown(f"""
-        <div style="background-color: #1E3A8A; color: white; padding: 12px 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0px 3px 8px rgba(0,0,0,0.12);">
+        <div style="background-color: #1E3A8A; color: white; padding: 14px 24px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0px 4px 12px rgba(30, 58, 138, 0.15);">
             <div>
-                <span style="font-size: 16px; font-weight: bold;">👋 Olá, {cli['nome']}!</span>
+                <span style="font-size: 16px; font-weight: bold;">👋 Cliente: {cli['nome']}</span>
             </div>
             <div>
-                <span style="font-size: 15px; background-color: #FFFFFF; color: #1E3A8A; padding: 6px 14px; border-radius: 20px; font-weight: bold;">
+                <span style="font-size: 15px; background-color: #FFFFFF; color: #1E3A8A; padding: 8px 18px; border-radius: 20px; font-weight: bold;">
                     🛒 {q_total_itens} item(ns) | Total: R$ {tot_carrinho_temp:.2f}
                 </span>
             </div>
@@ -680,8 +728,8 @@ elif modo == "Área do Cliente":
                 st.markdown("---")
                 
                 st.markdown("""
-                    <div style="background-color: #FFFFFF; border: 1px solid #CBD5E1; padding: 20px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,0.05);">
-                        <h3 style="color:#1E3A8A; margin-top:0px; border-bottom: 2px solid #1E3A8A; padding-bottom: 5px;">
+                    <div style="background-color: #FFFFFF; border: 1px solid #E2E8F0; padding: 22px; border-radius: 12px; box-shadow: 0px 4px 12px rgba(0,0,0,0.05);">
+                        <h3 style="color:#1E3A8A; margin-top:0px; border-bottom: 2px solid #1E3A8A; padding-bottom: 6px;">
                             📄 RESUMO DO PEDIDO
                         </h3>
                 """, unsafe_allow_html=True)
@@ -950,7 +998,7 @@ elif modo == "Painel Administrativo":
                             )
                         st.success(f"🎉 {len(pedidos_selecionados)} PDF(s) gerado(s) e gravado(s) na pasta: `{PASTA_PDF}`")
 
-        # TAB ADMINISTRATIVA 3: RELATÓRIO DE ENTREGAS POR PERÍODO CUSTOMIZADO
+        # TAB ADMINISTRATIVA 3: RELATÓRIO DE ENTREGAS
         with tab_relatorio_entrega:
             st.subheader("🚚 Relatório de Entregas por Período Personalizado")
             
@@ -979,7 +1027,7 @@ elif modo == "Painel Administrativo":
                     st.write(f"Observações de Acesso: {p_e.get('obs_dificuldade', 'Sem restrições')}")
                     st.divider()
 
-        # TAB ADMINISTRATIVA 4: RELATÓRIO FINANCEIRO POR PERÍODO CUSTOMIZADO
+        # TAB ADMINISTRATIVA 4: RELATÓRIO FINANCEIRO
         with tab_relatorio_financeiro:
             st.subheader("📊 Relatório Financeiro Personalizado (Faturamento)")
             
