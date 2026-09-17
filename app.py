@@ -19,8 +19,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# URL da Logomarca
+URL_LOGO = "https://i.imgur.com/A1w3mI4.png"
+
 # Inclusão da Logomarca na barra lateral
-st.sidebar.image("https://i.imgur.com/A1w3mI4.png", use_container_width=True)
+st.sidebar.image(URL_LOGO, use_container_width=True)
 
 # Estilização CSS para fixar e destacar o cabeçalho de navegação (Tabs)
 st.markdown("""
@@ -228,7 +231,7 @@ def gerar_pdf_orcamento(cliente, evento, data_evento, endereco, itens, subtotal,
     story.append(Paragraph("2. <b>Cancelamento:</b> O cancelamento do pedido deve ser solicitado com pelo menos 1 (uma) semana de antecedência da data do evento. Caso ocorra após este prazo, incidirá multa de 30% sobre o valor total do contrato.", legal_style))
     story.append(Paragraph("3. <b>Danos e Perdas:</b> O locatário compromete-se a ressarcir integralmente o locador em caso de danos, avarias ou perdas das peças, a preço de custo praticado no mercado.", legal_style))
     story.append(Paragraph("4. <b>Entrega e Logística:</b> O locador prontifica-se a entregar os materiais em perfeitas condições de uso e sem avarias, dentro do prazo combinado e local preestabelecido.", legal_style))
-    story.append(Paragraph("5. <b>Recolhimento e Descumprimento:</b> Os bens serão recolhidos pelo locador dentro do prazo combinado. Em caso de descumprimento injustificado das condições contratuais, incidirá multa de 30%.", legal_style))
+    story.append(Paragraph("5. <b>Recolhimento e Descumprimento:</b> Os bens serão recolhidos pelo locador dentro do prazo combinado. Em caso de descumprimento unjustificado das condições contratuais, incidirá multa de 30%.", legal_style))
     
     doc.build(story)
     buffer.seek(0)
@@ -320,6 +323,23 @@ if 'pedido_edicao_id' not in st.session_state:
 if 'termo_busca' not in st.session_state:
     st.session_state.termo_busca = ""
 
+# --- GERENCIAMENTO DE ENDEREÇOS/URLS DE ACESSO ---
+# Permite separar o acesso entre cliente e administração via parâmetro da URL:
+# URL Cliente: ?modo=cliente
+# URL Manutenção: ?modo=admin
+query_params = st.query_params
+modo_param = query_params.get("modo", None)
+
+st.sidebar.title("📌 Navegação")
+
+if modo_param == "admin":
+    modo = "Painel Administrativo"
+elif modo_param == "cliente":
+    modo = st.sidebar.radio("Ir para:", ["Área do Cliente", "Meu Perfil"])
+else:
+    # Caso nenhum parâmetro seja passado na URL, mostra navegação completa
+    modo = st.sidebar.radio("Ir para:", ["Área do Cliente", "Meu Perfil", "Painel Administrativo"])
+
 # --- BOTÃO FLUTUANTE DE AJUDA WHATSAPP ---
 st.markdown("""
     <a href="https://api.whatsapp.com/send?phone=5562982240434&text=Olá!%20Estou%20no%20aplicativo%20da%20Renascer%20Locações%20e%20gostaria%20de%20tirar%20uma%20dúvida." target="_blank" style="position:fixed;bottom:20px;right:20px;background-color:#25d366;color:white;border-radius:50px;text-align:center;font-size:15px;padding:12px 20px;box-shadow: 2px 2px 8px #888888;z-index:999999;text-decoration:none;font-weight:bold;">
@@ -346,10 +366,6 @@ def abrir_cardapio_resumido():
                     tocar_som("click")
                     st.rerun()
             st.divider()
-
-# --- MENU LATERAL DE NAVEGAÇÃO ---
-st.sidebar.title("📌 Navegação")
-modo = st.sidebar.radio("Ir para:", ["Área do Cliente", "Meu Perfil", "Painel Administrativo"])
 
 # ==========================================
 # 📱 TELA DE PERFIL DO CLIENTE
@@ -386,6 +402,9 @@ elif modo == "Área do Cliente":
     
     # TELA DE CADASTRO INICIAL
     if not st.session_state.cliente_perfil:
+        # Exibição da Logomarca na página inicial do cliente
+        st.image(URL_LOGO, width=280)
+        
         st.markdown("""
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 6px solid #1E3A8A; margin-bottom: 20px;">
             <h2 style="color: #1E3A8A; margin-bottom: 4px; font-weight: bold; font-size: 22px;">Renascer Locações e Eventos</h2>
@@ -877,7 +896,7 @@ elif modo == "Área do Cliente":
                             st.markdown(f'<a href="{wpp_url}" target="_blank" style="text-decoration:none; background-color:#25d366; color:white; padding:8px 12px; border-radius:5px; font-weight:bold; display:inline-block; text-align:center;">📲 Enviar via WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 🛠️ PAINEL ADMINISTRATIVO (GESTAO RENASCER)
+# 🛠️ PAINEL ADMINISTRATIVO (GESTÃO RENASCER)
 # ==========================================
 elif modo == "Painel Administrativo":
     st.title("🛠️ Painel Administrativo — Renascer Locações")
