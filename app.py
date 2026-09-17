@@ -13,50 +13,59 @@ from reportlab.lib import colors
 
 # Configuração da página
 st.set_page_config(
-    page_title="Renascer Locações - Excelência em Eventos",
+    page_title="Renascer Locações",
     page_icon="🎉",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Estilização CSS para centralizar/expandir logo e fixar cabeçalho
+# Estilização CSS para Tela Cheia Total, sem cabeçalhos e sem elementos da plataforma
 st.markdown("""
     <style>
-    /* Centralização e Expansão do Logo da Empresa */
-    .logo-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        margin-bottom: 25px;
-    }
-    .logo-container img {
-        max-width: 80%;
-        width: 450px;
-        height: auto;
+    /* Ocultar elementos da plataforma Streamlit */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stAppDeployButton {display:none !important;}
+    
+    /* Expandir a aplicação para tela cheia ocupando toda a viewport */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        max-width: 100% !important;
     }
 
-    /* Fixação do Menu Superior (Tabs) */
+    /* Estilização dos Tabs de Navegação */
     div[data-baseweb="tab-list"] {
         position: sticky;
         top: 0;
         background-color: #1E3A8A;
-        padding: 10px 15px;
+        padding: 8px 12px;
         border-radius: 8px;
         z-index: 999;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.15);
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
     div[data-baseweb="tab"] {
         color: #FFFFFF !important;
         font-weight: bold !important;
-        font-size: 16px !important;
-        padding: 10px 20px !important;
+        font-size: 15px !important;
+        padding: 8px 16px !important;
     }
     div[aria-selected="true"] {
         background-color: #FFFFFF !important;
         color: #1E3A8A !important;
         border-radius: 6px !important;
+    }
+
+    /* Botão discreto de sair na parte inferior */
+    .btn-sair-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 40px;
+        padding-top: 15px;
+        border-top: 1px solid #E2E8F0;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -64,9 +73,6 @@ st.markdown("""
 # --- VERIFICAÇÃO DE PARÂMETROS DA URL PARA ACESSO MANUTENÇÃO/ADMIN ---
 query_params = st.query_params
 eh_admin = query_params.get("modo") == "admin"
-
-# Logomarca na Barra Lateral (se expandida)
-st.sidebar.image("https://i.imgur.com/A1w3mI4.png", use_container_width=True)
 
 # --- GERENCIAMENTO DO ARQUIVO CSV DE CATÁLOGO ---
 CSV_CATALOGO = "catalogo.csv"
@@ -339,13 +345,6 @@ if 'pedido_edicao_id' not in st.session_state:
 if 'termo_busca' not in st.session_state:
     st.session_state.termo_busca = ""
 
-# --- BOTÃO FLUTUANTE DE AJUDA WHATSAPP ---
-st.markdown("""
-    <a href="https://api.whatsapp.com/send?phone=5562982240434&text=Olá!%20Estou%20no%20aplicativo%20da%20Renascer%20Locações%20e%20gostaria%20de%20tirar%20uma%20dúvida." target="_blank" style="position:fixed;bottom:20px;right:20px;background-color:#25d366;color:white;border-radius:50px;text-align:center;font-size:15px;padding:12px 20px;box-shadow: 2px 2px 8px #888888;z-index:999999;text-decoration:none;font-weight:bold;">
-        💬 Falar com um Atendente
-    </a>
-""", unsafe_allow_html=True)
-
 # --- MODAL DO CARDÁPIO RESUMIDO DE MATERIAIS ---
 @st.dialog("📋 Lista Rápida de Materiais", width="large")
 def abrir_cardapio_resumido():
@@ -406,34 +405,9 @@ if modo == "Meu Perfil":
 # ==========================================
 elif modo == "Área do Cliente":
     
-    # TELA DE CADASTRO INICIAL
+    # TELA DE CADASTRO INICIAL (Interface Limpa)
     if not st.session_state.cliente_perfil:
-        # LOGO CENTRALIZADO E EXPANDIDO
-        st.markdown("""
-        <div class="logo-container">
-            <img src="https://i.imgur.com/A1w3mI4.png" alt="Renascer Locações Logo">
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 6px solid #1E3A8A; margin-bottom: 20px;">
-            <h2 style="color: #1E3A8A; margin-bottom: 4px; font-weight: bold; font-size: 22px;">Renascer Locações e Eventos</h2>
-            <p style="font-size: 14px; color: #1E293B; margin: 0px; font-weight: 500; line-height: 1.4;">
-                🏆 <i>Há anos realizando celebrações inesquecíveis com pontualidade, qualidade e o melhor atendimento de Goiânia.</i>
-            </p>
-            <div style="font-size: 13px; color: #475569; margin-top: 12px; line-height: 1.6;">
-                📍 Rua Presidente Rodrigues Alves, Q. 30, Lt. 06, nº 01 — Jardim Presidente, Goiânia/GO
-                <div style="margin-top: 8px; margin-bottom: 8px;">
-                    <a href="https://maps.app.goo.gl/KRxqyapDwF3QVFtW8" target="_blank" style="text-decoration: none; background-color: #1E3A8A; color: white; padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: bold; display: inline-block; white-space: nowrap;">
-                        🗺️ Como Chegar (Google Maps)
-                    </a>
-                </div>
-                📞 (62) 3290-5515 | WhatsApp: (62) 98224-0434
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.subheader("👋 Seja bem-vindo! Faça seu cadastro inicial para acessar o catálogo:")
+        st.subheader("👋 Seja bem-vindo! Faça seu cadastro para acessar o catálogo:")
         
         c_nome = st.text_input("Seu Nome Completo*", key="cad_nome")
         c_tel = st.text_input("WhatsApp para Contato*", key="cad_tel")
@@ -513,15 +487,8 @@ elif modo == "Área do Cliente":
                 tocar_som("sucesso")
                 st.rerun()
 
-    # TELA PRINCIPAL DO CLIENTE (Navegação Direta)
+    # TELA PRINCIPAL DO CLIENTE (Tela Cheia e Limpa)
     else:
-        # LOGO CENTRALIZADO E EXPANDIDO
-        st.markdown("""
-        <div class="logo-container">
-            <img src="https://i.imgur.com/A1w3mI4.png" alt="Renascer Locações Logo">
-        </div>
-        """, unsafe_allow_html=True)
-
         cli = st.session_state.cliente_perfil
         
         q_total_itens = sum(st.session_state.carrinho_atual.values())
@@ -590,8 +557,6 @@ elif modo == "Área do Cliente":
                             
                             if item.get("foto") and str(item['foto']).strip() != "":
                                 st.image(item['foto'], width=150)
-                            else:
-                                st.caption("🖼️ *Foto pendente de inclusão*")
                             
                             if item.get("tipo_mesa") in ["quadrada", "redonda"]:
                                 st.markdown("---")
@@ -717,7 +682,7 @@ elif modo == "Área do Cliente":
                 st.markdown("""
                     <div style="background-color: #FFFFFF; border: 1px solid #CBD5E1; padding: 20px; border-radius: 8px; box-shadow: 0px 2px 5px rgba(0,0,0,0.05);">
                         <h3 style="color:#1E3A8A; margin-top:0px; border-bottom: 2px solid #1E3A8A; padding-bottom: 5px;">
-                            📄 RESUMO DO PEDIDO — RENASCER LOCAÇÕES
+                            📄 RESUMO DO PEDIDO
                         </h3>
                 """, unsafe_allow_html=True)
                 
@@ -819,7 +784,7 @@ elif modo == "Área do Cliente":
                     elif not cep_validado_ok:
                         st.error("Insira um CEP válido para calcular o frete e liberar a gravação.")
                     else:
-                        status_final = "Aguardando Homologação da Renascer"
+                        status_final = "Aguardando Homologação"
                         
                         if st.session_state.pedido_edicao_id:
                             for p in st.session_state.pedidos_standby:
@@ -884,7 +849,7 @@ elif modo == "Área do Cliente":
                         for item_det in ped['itens_detalhe']:
                             st.write(f"- {item_det['qtd']}x {item_det['nome']} (R$ {item_det['total']:.2f})")
                         
-                        col_actions1, col_actions2, col_actions3 = st.columns(3)
+                        col_actions1, col_actions2 = st.columns(2)
                         
                         with col_actions1:
                             if st.button("✏️ Editar Pedido", key=f"btn_edit_{ped['id']}"):
@@ -906,17 +871,12 @@ elif modo == "Área do Cliente":
                                 mime="application/pdf",
                                 key=f"btn_pdf_stb_{ped['id']}"
                             )
-                            
-                        with col_actions3:
-                            texto_wpp = f"Olá! Gostaria de confirmar meu pedido *{ped['evento']}* (ID: #{ped['id']}) para a data {ped['data']}. Valor Total: R$ {ped['total']:.2f}."
-                            wpp_url = f"https://api.whatsapp.com/send?phone=5562982240434&text={urllib.parse.quote(texto_wpp)}"
-                            st.markdown(f'<a href="{wpp_url}" target="_blank" style="text-decoration:none; background-color:#25d366; color:white; padding:8px 12px; border-radius:5px; font-weight:bold; display:inline-block; text-align:center;">📲 Enviar via WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
 # 🛠️ PAINEL ADMINISTRATIVO (GESTAO RENASCER)
 # ==========================================
 elif modo == "Painel Administrativo":
-    st.title("🛠️ Painel Administrativo — Renascer Locações")
+    st.title("🛠️ Painel Administrativo")
     
     # --- SISTEMA DE AUTENTICAÇÃO POR SENHA ---
     senha_correta = "renascer123"
@@ -1112,3 +1072,16 @@ elif modo == "Painel Administrativo":
 
     elif senha_input != "":
         st.error("Senha incorreta! Acesso negado ao painel de administração.")
+
+# --- BOTÃO ÚNICO E DISCRETO PARA SAIR (RODAPÉ) ---
+st.markdown('<div class="btn-sair-container">', unsafe_allow_html=True)
+col_v1, col_btn_sair, col_v2 = st.columns([5, 2, 5])
+with col_btn_sair:
+    if st.button("🚪 Sair do Aplicativo", key="btn_sair_app_rodape", use_container_width=True):
+        st.session_state.cliente_perfil = None
+        st.session_state.carrinho_atual = {}
+        st.session_state.toalhas_vinculadas = {}
+        st.session_state.pedido_edicao_id = None
+        st.session_state.termo_busca = ""
+        st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
