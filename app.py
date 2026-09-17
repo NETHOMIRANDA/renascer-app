@@ -18,7 +18,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
+st.sidebar.image("https://i.imgur.com/A1w3mI4.png", use_container_width=True)
 # Estilização CSS para fixar e destacar o cabeçalho de navegação (Tabs)
 st.markdown("""
     <style>
