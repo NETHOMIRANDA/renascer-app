@@ -4,6 +4,7 @@ import urllib.parse
 from datetime import datetime
 from difflib import SequenceMatcher
 import io
+import os
 import requests
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -44,6 +45,62 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
+# --- GERENCIAMENTO DO ARQUIVO CSV DE CATÁLOGO ---
+CSV_CATALOGO = "catalogo.csv"
+
+CATALOGO_PADRAO = [
+    # Mobiliário & Mesas
+    {"id": 1, "categoria": "Mobiliário & Mesas", "nome": "Jogo de Mesa com 4 Cadeiras de Plástico (Branca)", "preco": 14.00, "estoque": 50, "foto": "", "tipo_mesa": "quadrada", "tipo_toalha": "None"},
+    {"id": 2, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 6 Lugares (Tampão de Madeira)", "preco": 18.00, "estoque": 20, "foto": "", "tipo_mesa": "redonda", "tipo_toalha": "None"},
+    {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Aparador Rústico de Madeira (2,50m)", "preco": 25.00, "estoque": 5, "foto": "", "tipo_mesa": "outro", "tipo_toalha": "None"},
+    {"id": 4, "categoria": "Mobiliário & Mesas", "nome": "Cadeira de Plástico Branca Avulsa", "preco": 3.00, "estoque": 200, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+         
+    # Toalhas & Enxoval
+    {"id": 7, "categoria": "Toalhas & Enxoval", "nome": "Toalha Quadrada para Mesa (1,50m x 1,50m)", "preco": 6.00, "estoque": 100, "foto": "", "tipo_mesa": "None", "tipo_toalha": "quadrada"},
+    {"id": 8, "categoria": "Toalhas & Enxoval", "nome": "Toalha Redonda para Mesa 6 e 7 Lugares", "preco": 12.00, "estoque": 80, "foto": "", "tipo_mesa": "None", "tipo_toalha": "redonda"},
+    {"id": 9, "categoria": "Toalhas & Enxoval", "nome": "Cobre-Mancha / Cobre-Mesa Colorido", "preco": 6.00, "estoque": 120, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 10, "categoria": "Toalhas & Enxoval", "nome": "Guardanapo de Tecido (Diversas Cores)", "preco": 1.00, "estoque": 300, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    
+    # Louças & Copos
+    {"id": 11, "categoria": "Louças & Copos", "nome": "Prato de Jantar Raso Branco Liso", "preco": 0.80, "estoque": 300, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 12, "categoria": "Louças & Copos", "nome": "Prato de Sobremesa Branco Liso", "preco": 0.80, "estoque": 250, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 13, "categoria": "Louças & Copos", "nome": "Taça para Água / Vinho Transparente", "preco": 1.00, "estoque": 200, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 14, "categoria": "Louças & Copos", "nome": "Taça de Cerveja / Chope (300ml)", "preco": 1.00, "estoque": 200, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 15, "categoria": "Louças & Copos", "nome": "Copo Americano / Multiuso", "preco": 0.80, "estoque": 300, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 16, "categoria": "Louças & Copos", "nome": "Garfo de Jantar Inox", "preco": 0.80, "estoque": 400, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 17, "categoria": "Louças & Copos", "nome": "Faca de Jantar Inox", "preco": 0.80, "estoque": 400, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 18, "categoria": "Louças & Copos", "nome": "Colher de Sobremesa Inox", "preco": 0.80, "estoque": 300, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    
+    # Serviço & Rechauds
+    {"id": 19, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Redondo Banho-Maria", "preco": 25.00, "estoque": 10, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 20, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Retangular Duplo", "preco": 40.00, "estoque": 8, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 21, "categoria": "Serviço & Rechauds", "nome": "Suqueira de Vidro com Torneira (5 Litros)", "preco": 25.00, "estoque": 12, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 22, "categoria": "Serviço & Rechauds", "nome": "Saladeira / Travesa de Inox", "preco": 15.00, "estoque": 20, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 23, "categoria": "Serviço & Rechauds", "nome": "Pegador de Salada / Carne Inox", "preco": 3.00, "estoque": 30, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 24, "categoria": "Serviço & Rechauds", "nome": "Concha para Molho / Sopa Inox", "preco": 5.00, "estoque": 25, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    
+    # Equipamentos & Freezers
+    {"id": 25, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal 2 Tampas (400 Litros)", "preco": 200.00, "estoque": 3, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 26, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal 2 Tampas (500 Litros)", "preco": 250.00, "estoque": 2, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"},
+    {"id": 28, "categoria": "Equipamentos & Freezers", "nome": "Tina Térmica para Bebidas (Madeira/Plástico)", "preco": 10.00, "estoque": 8, "foto": "", "tipo_mesa": "None", "tipo_toalha": "None"}
+]
+
+def carregar_catalogo_csv():
+    if not os.path.exists(CSV_CATALOGO):
+        df_init = pd.DataFrame(CATALOGO_PADRAO)
+        df_init.to_csv(CSV_CATALOGO, index=False)
+        return CATALOGO_PADRAO
+    try:
+        df = pd.read_csv(CSV_CATALOGO)
+        df['foto'] = df['foto'].fillna('')
+        return df.to_dict(orient="records")
+    except Exception:
+        return CATALOGO_PADRAO
+
+def salvar_catalogo_csv(lista_itens):
+    df = pd.DataFrame(lista_itens)
+    df.to_csv(CSV_CATALOGO, index=False)
 
 # --- CONSULTA E VALIDAÇÃO DE CEP VIA VIACEP ---
 def consultar_cep(cep):
@@ -200,8 +257,8 @@ def buscar_materiais_inteligente(termo, catalogo):
     
     resultados = []
     for item in catalogo:
-        nome = item['nome'].lower()
-        categoria = item['categoria'].lower()
+        nome = str(item['nome']).lower()
+        categoria = str(item['categoria']).lower()
         
         if termo_processado in nome or termo_processado in categoria:
             resultados.append((item, 1.0))
@@ -219,42 +276,7 @@ def buscar_materiais_inteligente(termo, catalogo):
 
 # --- BASE DE DADOS DA SESSÃO ---
 if 'catalogo' not in st.session_state:
-    st.session_state.catalogo = [
-        # Mobiliário & Mesas
-        {"id": 1, "categoria": "Mobiliário & Mesas", "nome": "Jogo de Mesa com 4 Cadeiras de Plástico (Branca)", "preco": 14.00, "estoque": 50, "foto": "", "tipo_mesa": "quadrada"},
-        {"id": 2, "categoria": "Mobiliário & Mesas", "nome": "Mesa Redonda de 6 Lugares (Tampão de Madeira)", "preco": 18.00, "estoque": 20, "foto": "", "tipo_mesa": "redonda"},
-        {"id": 3, "categoria": "Mobiliário & Mesas", "nome": "Aparador Rústico de Madeira (2,50m)", "preco": 25.00, "estoque": 5, "foto": "", "tipo_mesa": "outro"},
-        {"id": 4, "categoria": "Mobiliário & Mesas", "nome": "Cadeira de Plástico Branca Avulsa", "preco": 3.00, "estoque": 200, "foto": ""},
-             
-        # Toalhas & Enxoval
-        {"id": 7, "categoria": "Toalhas & Enxoval", "nome": "Toalha Quadrada para Mesa (1,50m x 1,50m)", "preco": 6.00, "estoque": 100, "foto": "", "tipo_toalha": "quadrada"},
-        {"id": 8, "categoria": "Toalhas & Enxoval", "nome": "Toalha Redonda para Mesa 6 e 7 Lugares", "preco": 12.00, "estoque": 80, "foto": "", "tipo_toalha": "redonda"},
-        {"id": 9, "categoria": "Toalhas & Enxoval", "nome": "Cobre-Mancha / Cobre-Mesa Colorido", "preco": 6.00, "estoque": 120, "foto": ""},
-        {"id": 10, "categoria": "Toalhas & Enxoval", "nome": "Guardanapo de Tecido (Diversas Cores)", "preco": 1.00, "estoque": 300, "foto": ""},
-        
-        # Louças & Copos
-        {"id": 11, "categoria": "Louças & Copos", "nome": "Prato de Jantar Raso Branco Liso", "preco": 0.80, "estoque": 300, "foto": ""},
-        {"id": 12, "categoria": "Louças & Copos", "nome": "Prato de Sobremesa Branco Liso", "preco": 0.80, "estoque": 250, "foto": ""},
-        {"id": 13, "categoria": "Louças & Copos", "nome": "Taça para Água / Vinho Transparente", "preco": 1.00, "estoque": 200, "foto": ""},
-        {"id": 14, "categoria": "Louças & Copos", "nome": "Taça de Cerveja / Chope (300ml)", "preco": 1.00, "estoque": 200, "foto": ""},
-        {"id": 15, "categoria": "Louças & Copos", "nome": "Copo Americano / Multiuso", "preco": 0.80, "estoque": 300, "foto": ""},
-        {"id": 16, "categoria": "Louças & Copos", "nome": "Garfo de Jantar Inox", "preco": 0.80, "estoque": 400, "foto": ""},
-        {"id": 17, "categoria": "Louças & Copos", "nome": "Faca de Jantar Inox", "preco": 0.80, "estoque": 400, "foto": ""},
-        {"id": 18, "categoria": "Louças & Copos", "nome": "Colher de Sobremesa Inox", "preco": 0.80, "estoque": 300, "foto": ""},
-        
-        # Serviço & Rechauds
-        {"id": 19, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Redondo Banho-Maria", "preco": 25.00, "estoque": 10, "foto": ""},
-        {"id": 20, "categoria": "Serviço & Rechauds", "nome": "Rechaud Inox Retangular Duplo", "preco": 40.00, "estoque": 8, "foto": ""},
-        {"id": 21, "categoria": "Serviço & Rechauds", "nome": "Suqueira de Vidro com Torneira (5 Litros)", "preco": 25.00, "estoque": 12, "foto": ""},
-        {"id": 22, "categoria": "Serviço & Rechauds", "nome": "Saladeira / Travesa de Inox", "preco": 15.00, "estoque": 20, "foto": ""},
-        {"id": 23, "categoria": "Serviço & Rechauds", "nome": "Pegador de Salada / Carne Inox", "preco": 3.00, "estoque": 30, "foto": ""},
-        {"id": 24, "categoria": "Serviço & Rechauds", "nome": "Concha para Molho / Sopa Inox", "preco": 5.00, "estoque": 25, "foto": ""},
-        
-        # Equipamentos & Freezers
-        {"id": 25, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal 2 Tampas (400 Litros)", "preco": 200.00, "estoque": 3, "foto": ""},
-        {"id": 26, "categoria": "Equipamentos & Freezers", "nome": "Freezer Horizontal 2 Tampas (500 Litros)", "preco": 250.00, "estoque": 2, "foto": ""},
-        {"id": 28, "categoria": "Equipamentos & Freezers", "nome": "Tina Térmica para Bebidas (Madeira/Plástico)", "preco": 10.00, "estoque": 8, "foto": ""}
-    ]
+    st.session_state.catalogo = carregar_catalogo_csv()
 
 if 'cliente_perfil' not in st.session_state:
     st.session_state.cliente_perfil = None
@@ -290,7 +312,7 @@ def abrir_cardapio_resumido():
     st.write("Clique em qualquer item para localizá-lo rapidamente no catálogo:")
     st.markdown("---")
     
-    catalogo_ordenado = sorted(st.session_state.catalogo, key=lambda x: x['nome'])
+    catalogo_ordenado = sorted(st.session_state.catalogo, key=lambda x: str(x['nome']))
     
     with st.container(height=420):
         for item in catalogo_ordenado:
@@ -509,7 +531,7 @@ elif modo == "Área do Cliente":
                             st.caption(f"Categoria: {item['categoria']}")
                             st.write(f"Valor unitário: **R$ {item['preco']:.2f}**")
                             
-                            if item.get("foto"):
+                            if item.get("foto") and str(item['foto']).strip() != "":
                                 st.image(item['foto'], width=150)
                             else:
                                 st.caption("🖼️ *Foto pendente de inclusão*")
@@ -536,8 +558,8 @@ elif modo == "Área do Cliente":
                         with col_qtd:
                             qtd_atual = st.session_state.carrinho_atual.get(item['id'], 0)
                             nova_qtd = st.number_input(
-                                "Quantidade:", min_value=0, max_value=item['estoque'], 
-                                value=qtd_atual, key=f"item_qtd_{item['id']}"
+                                "Quantidade:", min_value=0, max_value=int(item['estoque']), 
+                                value=int(qtd_atual), key=f"item_qtd_{item['id']}"
                             )
                             if nova_qtd != qtd_atual:
                                 if nova_qtd > 0:
@@ -894,9 +916,11 @@ elif modo == "Painel Administrativo":
         col_salvar, col_espaco = st.columns([1, 3])
         with col_salvar:
             if st.button("💾 Salvar Alterações / Exclusões no Catálogo", use_container_width=True):
-                st.session_state.catalogo = df_editado.to_dict(orient="records")
+                novos_dados = df_editado.to_dict(orient="records")
+                st.session_state.catalogo = novos_dados
+                salvar_catalogo_csv(novos_dados)
                 tocar_som("sucesso")
-                st.success("Catálogo e estoque atualizados com sucesso!")
+                st.success("Catálogo e estoque gravados permanentemente com sucesso!")
                 st.rerun()
 
         st.markdown("---")
@@ -910,11 +934,14 @@ elif modo == "Painel Administrativo":
             
             if st.form_submit_button("➕ Cadastrar Item no Catálogo"):
                 if novo_nome:
-                    novo_id = max([i['id'] for i in st.session_state.catalogo], default=0) + 1
-                    st.session_state.catalogo.append({
+                    novo_id = max([int(i['id']) for i in st.session_state.catalogo], default=0) + 1
+                    novo_item = {
                         "id": novo_id, "categoria": nova_cat, "nome": novo_nome,
-                        "preco": novo_preco, "estoque": novo_estq, "foto": nova_foto
-                    })
+                        "preco": novo_preco, "estoque": novo_estq, "foto": nova_foto,
+                        "tipo_mesa": "None", "tipo_toalha": "None"
+                    }
+                    st.session_state.catalogo.append(novo_item)
+                    salvar_catalogo_csv(st.session_state.catalogo)
                     tocar_som("sucesso")
                     st.success(f"Item '{novo_nome}' adicionado com sucesso!")
                     st.rerun()
