@@ -104,7 +104,7 @@ st.markdown("""
 
 # --- GERENCIAMENTO DO ARQUIVO CSV DE CATÁLOGO ---
 CSV_CATALOGO = "catalogo.csv"
-PASTA_PDF = r"C:\Users\netho\OneDrive\Desktop\Modelo 02 - Copia\PDF"
+PASTA_PDF = os.path.join(os.getcwd(), "PDF")
 
 CATALOGO_PADRAO = [
     # Mobiliário & Mesas
@@ -151,6 +151,12 @@ def carregar_catalogo_csv():
     try:
         df = pd.read_csv(CSV_CATALOGO)
         df['foto'] = df['foto'].fillna('')
+        if 'tipo_mesa' not in df.columns:
+            df['tipo_mesa'] = "None"
+        if 'tipo_toalha' not in df.columns:
+            df['tipo_toalha'] = "None"
+        df['tipo_mesa'] = df['tipo_mesa'].fillna('None')
+        df['tipo_toalha'] = df['tipo_toalha'].fillna('None')
         return df.to_dict(orient="records")
     except Exception:
         return CATALOGO_PADRAO
@@ -162,7 +168,7 @@ def salvar_catalogo_csv(lista_itens):
 def salvar_pdf_localmente(buffer_pdf, nome_arquivo):
     try:
         if not os.path.exists(PASTA_PDF):
-            os.makedirs(PASTA_PDF)
+            os.makedirs(PASTA_PDF, exist_ok=True)
         caminho_completo = os.path.join(PASTA_PDF, nome_arquivo)
         with open(caminho_completo, "wb") as f:
             f.write(buffer_pdf.getvalue())
@@ -200,14 +206,13 @@ def buscar_cep_por_rua(uf, cidade, logradouro):
 
 # --- REPRODUTOR DE ÁUDIO E NOTIFICAÇÃO ---
 def tocar_som(tipo="click"):
-    if tipo == "click":
-        audio_url = "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"
-    elif tipo == "sucesso":
-        audio_url = "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"
-    elif tipo == "homologado":
-        audio_url = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
-    elif tipo == "novo_pedido":
-        audio_url = "https://assets.mixkit.co/active_storage/sfx/1000/1000-preview.mp3"
+    audio_urls = {
+        "click": "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
+        "sucesso": "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3",
+        "homologado": "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
+        "novo_pedido": "https://assets.mixkit.co/active_storage/sfx/1000/1000-preview.mp3"
+    }
+    audio_url = audio_urls.get(tipo, audio_urls["click"])
     st.components.v1.html(f'<audio autoplay style="display:none;"><source src="{audio_url}" type="audio/mpeg"></audio>', height=0, width=0)
 
 # --- GERADOR DE PDF FORMAL E CONTRATO DE LOCAÇÃO ---
@@ -391,7 +396,7 @@ if 'termo_busca' not in st.session_state:
 if 'eh_admin' not in st.session_state:
     st.session_state.eh_admin = False
 
-# --- CABEÇALHO / HERO BANNER DA EMPRESA (CENTRALIZADO & ESTENDIDO) ---
+# --- CABEÇALHO / HERO BANNER DA EMPRESA ---
 st.markdown("""
 <div class="hero-container">
     <div class="hero-title">RENASCER LOCAÇÕES & EVENTOS</div>
@@ -640,7 +645,7 @@ elif modo == "Área do Cliente":
                             if is_mesa_ou_aparador:
                                 st.markdown("---")
                                 quer_toalha = st.checkbox(
-                                    f"Deseja incluir toalha para este móvel?", 
+                                    "Deseja incluir toalha para este móvel?", 
                                     value=(item['id'] in st.session_state.toalhas_vinculadas),
                                     key=f"chk_toalha_{item['id']}"
                                 )
@@ -681,7 +686,7 @@ elif modo == "Área do Cliente":
                             if is_guardanapo:
                                 st.markdown("---")
                                 quer_guardanapo_cor = st.checkbox(
-                                    f"Deseja especificar a cor e quantidade para este guardanapo?",
+                                    "Deseja especificar a cor e quantidade para este guardanapo?",
                                     value=(item['id'] in st.session_state.guardanapos_vinculados),
                                     key=f"chk_guardanapo_{item['id']}"
                                 )
@@ -715,8 +720,7 @@ elif modo == "Área do Cliente":
                                     st.session_state.guardanapos_vinculados.pop(item['id'], None)
 
                         with col_qtd:
-                            # Para guardanapos com cor customizada, gerenciamos pela caixa de inclusão dedicada
-                            if not "guardanapo" in str(item['nome']).lower():
+                            if "guardanapo" not in str(item['nome']).lower():
                                 qtd_atual = st.session_state.carrinho_atual.get(item['id'], 0)
                                 nova_qtd = st.number_input(
                                     "Quantidade:", min_value=0, max_value=int(item['estoque']), 
@@ -1056,7 +1060,7 @@ elif modo == "Área do Cliente":
                             )
 
 # ==========================================
-# 🛠️ PAINEL ADMINISTRATIVO (GESTAO RENASCER)
+# 🛠️ PAINEL ADMINISTRATIVO (GESTÃO RENASCER)
 # ==========================================
 elif modo == "Painel Administrativo" and st.session_state.eh_admin:
     st.title("🛠️ Painel Administrativo de Homologação")
